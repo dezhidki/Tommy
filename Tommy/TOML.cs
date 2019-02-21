@@ -38,6 +38,8 @@ namespace Tommy
 
         private static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
 
+        private static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
+
         private static bool IsBareKey(char c) => 'A' <= c && c <= 'Z' || 
                                                  'a' <= c && c <= 'z' || 
                                                  '0' <= c && c <= '9' ||
@@ -105,6 +107,67 @@ namespace Tommy
                 if (ProcessQuotedValueCharacter(quote, isBasic, c, reader.Peek(), sb, ref escaped))
                     break;
             }
+
+            return isBasic ? sb.ToString().Unescape() : sb.ToString();
+        }
+
+        private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
+        {
+            bool isBasic = quote == BASIC_STRING_SYMBOL;
+            StringBuilder sb = new StringBuilder();
+
+            bool escaped = false;
+            bool skipWhitespace = false;
+            int quotesEncountered = 0;
+
+            int cur;
+            while ((cur = reader.Read()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (escaped)
+                {
+                    sb.Append(c);
+                    escaped = false;
+                    continue;
+                }
+
+                if (skipWhitespace)
+                {
+                    if (IsWhiteSpace(c))
+                        continue;
+                    skipWhitespace = false;
+                }
+
+                if (c == ESCAPE_SYMBOL)
+                {
+                    int next = reader.Peek();
+                    if (next >= 0)
+                    {
+                        if (IsWhiteSpace((char) next))
+                        {
+                            skipWhitespace = true;
+                            continue;
+                        }
+
+                        if (isBasic && (char) next == quote)
+                            escaped = true;
+                    }
+                }
+
+                if (c == quote)
+                    quotesEncountered++;
+                else
+                    quotesEncountered = 0;
+
+                if (quotesEncountered == 3)
+                    break;
+
+                sb.Append(c);
+            }
+
+            // Remove last three quotes
+            sb.Length -= 3;
 
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
@@ -189,21 +252,14 @@ namespace Tommy
 
                     if (IsQuoted(c))
                     {
-                        if (IsTripleQuote(c, reader, out var excess))
+                        var value = IsTripleQuote(c, reader, out var excess) ? ReadQuotedValueMultiLine(c, reader) : ReadQuotedValueSingleLine(c, reader, excess);
+                        currentNode.Children[key] = new TomlNode
                         {
-                            // TODO: Parse multiline
-                        }
-                        else
-                        {
-                            string value = ReadQuotedValueSingleLine(c, reader, excess);
-                            currentNode.Children[key] = new TomlNode
-                            {
-                                Key = key,
-                                RawValue = value
-                            };
+                            Key = key,
+                            RawValue = value
+                        };
 
-                            key = string.Empty;
-                        }
+                        key = string.Empty;
                     }
 
                     if(c == COMMENT_SYMBOL)
