@@ -78,5 +78,46 @@ namespace TommyTests
                     Assert.Fail("The invalid key should cause an exception");
             }
         }
+
+        [TestMethod]
+        public void TestMultilineValueParse()
+        {
+            string input = @"
+            # The following strings are byte-for-byte equivalent:
+            str1 = ""The quick brown fox jumps over the lazy dog.""
+
+            str2 = """"""
+The quick brown \
+
+
+                    fox jumps over \
+                    the lazy dog.""""""
+
+            str3 = """"""\
+                    The quick brown \
+                    fox jumps over \
+                    the lazy dog.\
+                   """"""
+
+            regex2 = '''I [dw]on't need \d{2} apples'''
+
+            lines  = '''
+            The first newline is
+            trimmed in raw strings.
+              All other whitespace
+              is preserved.
+            '''
+            ";
+
+            using (StringReader sr = new StringReader(input))
+            {
+                var node = TOML.Parse(sr);
+
+                Assert.AreEqual(node.Children["str1"].RawValue, node.Children["str2"].RawValue, "str1 and str2 are not equal");
+                Assert.AreEqual(node.Children["str2"].RawValue, node.Children["str3"].RawValue, "str2 and str3 are not equal");
+
+                Assert.AreEqual(node.Children.Count, 5, $"Parsed {node.Children.Count} / 5 items");
+            }
+        }
     }
 }
