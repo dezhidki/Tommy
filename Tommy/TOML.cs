@@ -120,12 +120,22 @@ namespace Tommy
             bool escaped = false;
             bool skipWhitespace = false;
             int quotesEncountered = 0;
+            bool first = true;
 
             int cur;
             while ((cur = reader.Read()) >= 0)
             {
                 char c = (char) cur;
 
+                // Trim the first newline
+                if (first && IsNewLine(c))
+                {
+                    if (c != NEWLINE_CARRIAGE_RETURN_CHARACTER)
+                        first = false;
+                    continue;
+                }
+
+                // Skip the current character if it is going to be escaped later
                 if (escaped)
                 {
                     sb.Append(c);
@@ -133,42 +143,48 @@ namespace Tommy
                     continue;
                 }
 
+                // If we are currently skipping empty spaces, skip
                 if (skipWhitespace)
                 {
-                    if (IsWhiteSpace(c))
+                    if (IsEmptySpace(c))
                         continue;
                     skipWhitespace = false;
                 }
 
+                // If we encounter an escape sequence...
                 if (c == ESCAPE_SYMBOL)
                 {
                     int next = reader.Peek();
                     if (next >= 0)
                     {
-                        if (IsWhiteSpace((char) next))
+                        // ...and the next char is empty space, we must skip all whitespaces
+                        if (IsEmptySpace((char) next))
                         {
                             skipWhitespace = true;
                             continue;
                         }
 
+                        // ...and we are in basic mode with \", skip the character
                         if (isBasic && (char) next == quote)
                             escaped = true;
                     }
                 }
 
+                // Count the consecutive quotes
                 if (c == quote)
                     quotesEncountered++;
                 else
                     quotesEncountered = 0;
 
+                // If the are three quotes, count them as closing quotes
                 if (quotesEncountered == 3)
                     break;
 
                 sb.Append(c);
             }
 
-            // Remove last three quotes
-            sb.Length -= 3;
+            // Remove last two quotes (third one wasn't included by default
+            sb.Length -= 2;
 
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
