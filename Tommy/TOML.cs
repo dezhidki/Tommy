@@ -65,6 +65,7 @@ namespace Tommy
             if (escaped)
             {
                 sb.Append(c);
+                escaped = false;
                 return false;
             }
 

@@ -22,6 +22,7 @@ namespace TommyTests
             1234 = ""value""
             escaped-key = ""Hello\nWorld""
             literal-key = 'Hello\nWorld'
+            escaped-quote = ""Hello, \""world\""""
             ";
             Dictionary<string, string> keys = new Dictionary<string, string>()
             {
@@ -30,7 +31,8 @@ namespace TommyTests
                 ["bare-key"] = "value",
                 ["1234"] = "value",
                 ["escaped-key"] = "Hello\nWorld",
-                ["literal-key"] = @"Hello\nWorld"
+                ["literal-key"] = @"Hello\nWorld",
+                ["escaped-quote"] = "Hello, \"world\""
             };
 
             using (StringReader sr = new StringReader(input))
