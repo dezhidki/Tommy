@@ -18,19 +18,10 @@ namespace TommyTests
             {
                 ["hello"] = new TomlNode
                 {
-                    Key = "hello",
-                    ["key"] = new TomlNode
-                    {
-                        Key = "key",
-                        RawValue = "Wew"
-                    },
+                    ["key"] = "wew",
                     ["test"] = new TomlTable
                     {
-                        ["foo"] = new TomlNode
-                        {
-                            Key = "foo",
-                            RawValue = "Value"
-                        }
+                        ["foo"] = "Value"
                     }
                 }
             };
