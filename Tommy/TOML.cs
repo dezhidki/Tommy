@@ -206,6 +206,9 @@ namespace Tommy
                         }
                     }
 
+                    if(c == COMMENT_SYMBOL)
+                        throw new Exception("The key has no value!");
+
                     state = ParseState.None;
                 }
             }
