@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace Tommy
@@ -12,7 +11,24 @@ namespace Tommy
 
         public string RawValue { get; set; }
 
-        public Dictionary<string, TomlNode> Children { get; } = new Dictionary<string, TomlNode>();
+        public bool IsTable { get; protected set; } = false;
+
+        private Dictionary<string, TomlNode> children;
+        public Dictionary<string, TomlNode> Children => children ?? (children = new Dictionary<string, TomlNode>());
+
+        public TomlNode this[string key]
+        {
+            get => Children[key];
+            set => Children[key] = value;
+        }
+    }
+
+    public class TomlTable : TomlNode
+    {
+        public TomlTable()
+        {
+            IsTable = true;
+        }
     }
 
     public static class TOML
@@ -218,7 +234,9 @@ namespace Tommy
                         continue;
                     }
 
-                    //TODO: Section
+                    //TODO: Tables
+
+                    //TODO: Array tables
 
                     if (IsBareKey(c))
                     {
@@ -270,7 +288,7 @@ namespace Tommy
                     if (IsQuoted(c))
                     {
                         var value = IsTripleQuote(c, reader, out var excess) ? ReadQuotedValueMultiLine(c, reader) : ReadQuotedValueSingleLine(c, reader, excess);
-                        currentNode.Children[key] = new TomlNode
+                        currentNode[key] = new TomlNode
                         {
                             Key = key,
                             RawValue = value
