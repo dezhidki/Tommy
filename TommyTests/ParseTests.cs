@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tommy;
@@ -24,35 +23,20 @@ namespace TommyTests
             literal-key = 'Hello\nWorld'
             escaped-quote = ""Hello, \""world\""""
             ";
-            Dictionary<string, string> keys = new Dictionary<string, string>()
+
+            var expectedNode = new TomlNode
             {
-                ["key"] = "value",
-                ["bare_key"] = "value",
-                ["bare-key"] = "value",
-                ["1234"] = "value",
-                ["escaped-key"] = "Hello\nWorld",
-                ["literal-key"] = @"Hello\nWorld",
-                ["escaped-quote"] = "Hello, \"world\""
+                    ["key"] = "value",
+                    ["bare_key"] = "value",
+                    ["bare-key"] = "value",
+                    ["1234"] = "value",
+                    ["escaped-key"] = "Hello\nWorld",
+                    ["literal-key"] = "Hello\\nWorld",
+                    ["escaped-quote"] = "Hello, \"world\""
             };
-
-            using (StringReader sr = new StringReader(input))
-            {
-                var node = TOML.Parse(sr);
-
-                // There should be four children
-                Assert.AreEqual(keys.Count, node.Children.Count, $"There should be {keys.Count} defined, but found {node.Children.Count}");
-                
-                foreach (var keyValuePair in node.Children)
-                {
-                    if (keys.TryGetValue(keyValuePair.Key, out var value))
-                    {
-                        Assert.AreEqual(value, keyValuePair.Value.RawValue, $"Expected [{keyValuePair.Key}]={value} but got {keyValuePair.Value.RawValue}");
-                        keys.Remove(keyValuePair.Key);
-                    }
-                    else
-                        Assert.Fail($"Found an undefined key {keyValuePair.Key} = {keyValuePair.Value}");
-                }
-            }
+            
+            using(StringReader sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
 
         [TestMethod]
@@ -80,6 +64,43 @@ namespace TommyTests
         }
 
         [TestMethod]
+        public void TestSubkeyParse()
+        {
+            string input = @"
+            # Test parsing  subkeys
+
+            test.str1 = ""Hello, world!""
+            test.str2 = ""Hello, world!""
+
+            ""test"".str4 = ""Hello, world!""
+            test2.""$foo\n"".'bar\n'.baz = ""Hello, world!""
+            ";
+
+            var correctNode = new TomlNode
+            {
+                ["test"] = new TomlNode
+                {
+                    ["str1"] = "Hello, world!",
+                    ["str2"] = "Hello, world!",
+                    ["str4"] = "Hello, world!"
+                },
+                ["test2"] = new TomlNode
+                {
+                    ["$foo\n"] = new TomlNode
+                    {
+                        ["bar\\n"] = new TomlNode
+                        {
+                            ["baz"] = "Hello, world!"
+                        }
+                    }
+                }
+            };
+
+            using (StringReader sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(correctNode, TOML.Parse(sr));
+        }
+
+        [TestMethod]
         public void TestMultilineValueParse()
         {
             string input = @"
@@ -102,22 +123,24 @@ The quick brown \
             regex2 = '''I [dw]on't need \d{2} apples'''
 
             lines  = '''
-            The first newline is
-            trimmed in raw strings.
-              All other whitespace
-              is preserved.
-            '''
+The first newline is
+trimmed in raw strings.
+  All other whitespace
+  is preserved.
+'''
             ";
 
-            using (StringReader sr = new StringReader(input))
+            var expectedNode = new TomlNode
             {
-                var node = TOML.Parse(sr);
+                ["str1"] = "The quick brown fox jumps over the lazy dog.",
+                ["str2"] = "The quick brown fox jumps over the lazy dog.",
+                ["str3"] = "The quick brown fox jumps over the lazy dog.",
+                ["regex2"] = @"I [dw]on't need \d{2} apples",
+                ["lines"] = $"The first newline is{Environment.NewLine}trimmed in raw strings.{Environment.NewLine}  All other whitespace{Environment.NewLine}  is preserved.{Environment.NewLine}"
+            };
 
-                Assert.AreEqual(node.Children["str1"].RawValue, node.Children["str2"].RawValue, "str1 and str2 are not equal");
-                Assert.AreEqual(node.Children["str2"].RawValue, node.Children["str3"].RawValue, "str2 and str3 are not equal");
-
-                Assert.AreEqual(node.Children.Count, 5, $"Parsed {node.Children.Count} / 5 items");
-            }
+            using (StringReader sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
     }
 }
