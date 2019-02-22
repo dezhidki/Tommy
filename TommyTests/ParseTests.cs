@@ -16,7 +16,7 @@ namespace TommyTests
             
             key = ""value"" # This is a comment
             # key = ""value2""
-            bare_key = ""value""
+            bare_key = ""value""#Another comment
             bare-key = ""value""
             1234 = ""value""
             escaped-key = ""Hello\nWorld""
@@ -36,6 +36,52 @@ namespace TommyTests
             };
             
             using(StringReader sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
+        }
+
+        [TestMethod]
+        public void TestTableParse()
+        {
+            string input = @"
+            # Test of table nodes
+
+            str1 = ""Hello, root node!""
+            
+            [foo] # base table
+            str1 = ""Hello, foo!""
+
+            [foo.bar] # Test that subkeying works
+            str1 = ""Hello, foo.bar!""
+
+            [foo.bar.""$baz ^?\n""] # Test that stringed values work too
+            str1 = ""Hello, weird boy!""
+
+            [ baz ] # This has some extra whitespace
+            str1 = ""Hello, baz!""
+            ";
+
+            var expectedNode = new TomlNode
+            {
+                    ["str1"] = "Hello, root node!",
+                    ["foo"] = new TomlTable
+                    {
+                        ["str1"] = "Hello, foo!",
+                        ["bar"] = new TomlTable
+                        {
+                            ["str1"] = "Hello, foo.bar!",
+                            ["$baz ^?\n"] = new TomlTable
+                            {
+                                ["str1"] = "Hello, weird boy!"
+                            }
+                        }
+                    },
+                    ["baz"] = new TomlTable
+                    {
+                        ["str1"] = "Hello, baz!"
+                    }
+            };
+
+            using (StringReader sr = new StringReader(input))
                 Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
 

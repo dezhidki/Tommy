@@ -48,12 +48,14 @@ namespace Tommy
         private const char NEWLINE_CARRIAGE_RETURN_CHARACTER = '\r';
         private const char NEWLINE_CHARACTER = '\n';
         private const char SUBKEY_SEPARATOR = '.';
+        private const char TABLE_END_SYMBOL = ']';
+        private const char TABLE_START_SYMBOL = '[';
 
         public static TomlNode Parse(TextReader reader)
         {
-            var result = new TomlNode();
+            var rootNode = new TomlNode();
 
-            var currentNode = result;
+            var currentNode = rootNode;
 
             var state = ParseState.None;
 
@@ -77,9 +79,11 @@ namespace Tommy
                         continue;
                     }
 
-                    //TODO: Tables
-
-                    //TODO: Array tables
+                    if (c == TABLE_START_SYMBOL)
+                    {
+                        state = ParseState.Table;
+                        continue;
+                    }
 
                     if (IsBareKey(c) || IsQuoted(c))
                         state = ParseState.Key;
@@ -131,11 +135,57 @@ namespace Tommy
                     if (c == COMMENT_SYMBOL)
                         throw new Exception("The key has no value!");
 
-                    state = ParseState.None;
+                    state = ParseState.SkipToNextLine;
+                    continue;
+                }
+
+                if (state == ParseState.Table)
+                {
+                    // TODO: Array table
+
+                    if (IsWhiteSpace(c))
+                        continue;
+
+                    if (keyParts.Count == 0)
+                    {
+                        c = ReadKeyName(reader, ref keyParts, c);
+                        if (keyParts.Count == 0)
+                            throw new Exception("The table key is empty!");
+
+                        if (IsWhiteSpace(c))
+                            continue;
+                    }
+
+                    if (c == TABLE_END_SYMBOL)
+                    {
+                        currentNode = CreateTable(rootNode, keyParts);
+                        keyParts.Clear();
+                        state = ParseState.SkipToNextLine;
+                        continue;
+                    }
+
+                    if (keyParts.Count != 0)
+                        throw new Exception("Encountered unexpected character in table definition!");
+                }
+
+                if (state == ParseState.SkipToNextLine)
+                {
+                    if (IsWhiteSpace(c) || c == NEWLINE_CARRIAGE_RETURN_CHARACTER)
+                        continue;
+
+                    if (c == COMMENT_SYMBOL || c == NEWLINE_CHARACTER)
+                    {
+                        if (c == COMMENT_SYMBOL)
+                            reader.ReadLine();
+                        state = ParseState.None;
+                        continue;
+                    }
+
+                    throw new Exception("Unexpected symbol after the parsed content");
                 }
             }
 
-            return result;
+            return rootNode;
         }
 
         private static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == '\'';
@@ -187,7 +237,7 @@ namespace Tommy
             return false;
         }
 
-        private static void ReadKeyName(TextReader tr, ref List<string> parts, char firstChar)
+        private static char ReadKeyName(TextReader tr, ref List<string> parts, char firstChar)
         {
             var buffer = new StringBuilder();
 
@@ -199,9 +249,10 @@ namespace Tommy
                 buffer.Append(firstChar);
 
             int cur;
+            char c = '\0';
             while ((cur = tr.Read()) >= 0)
             {
-                char c = (char) cur;
+                c = (char) cur;
 
                 // Stop if we see whitespace in non-quoted context; let main parser cause the possible error
                 if (IsWhiteSpace(c) || c == KEY_VALUE_SEPARATOR)
@@ -236,10 +287,12 @@ namespace Tommy
                     continue;
                 }
 
-                throw new Exception("Encountered an invalid symbol in key definition!");
+                // If we see an invalid symbol, let the next parser handle it
+                break;
             }
 
             parts.Add(buffer.ToString());
+            return c;
         }
 
         private static string ReadQuotedValueSingleLine(char quote, TextReader reader, string initialData)
@@ -373,11 +426,40 @@ namespace Tommy
             return latestNode;
         }
 
+        private static TomlTable CreateTable(TomlNode root, List<string> path)
+        {
+            if (path.Count == 0)
+                return null;
+
+            var latestNode = root;
+
+            for (int index = 0; index < path.Count; index++)
+            {
+                string subkey = path[index];
+                if (latestNode.Children.TryGetValue(subkey, out var node))
+                {
+                    if (node.HasValue)
+                        throw new Exception("The key has a value assigned to it!");
+                }
+                else
+                {
+                    node = index == path.Count - 1 ? new TomlTable() : new TomlNode();
+                    latestNode[subkey] = node;
+                }
+
+                latestNode = node;
+            }
+
+            return (TomlTable) latestNode;
+        }
+
         private enum ParseState
         {
             None,
             Key,
-            Value
+            Value,
+            SkipToNextLine,
+            Table
         }
     }
 
