@@ -9,6 +9,58 @@ namespace TommyTests
     public class ParseTests
     {
         [TestMethod]
+        public void TestArrayParse()
+        {
+            string input = @"
+            # Test array values
+
+            array = [ ""foo"", ""bar"", ""baz"" ]
+            multiline_array = [ ""foo"",
+            ""bar"",
+            ""baz"", # The terminating comma is permitted
+            ]
+            complex_array = [ 
+                                """"""\
+                                This is a test of a complex \
+                                multiline \
+                                string\
+                                """""",
+                                'bar',
+                                '''Just to make sure
+we still work as expected
+because reasons'''
+                                ,
+                                
+                                
+                                ""baz""
+                                ,
+                                          # Comments still work
+
+                                ]
+           
+            empty_array = []
+            multi_array = [[""bananas"", 'apples'], ""Dunno what this is"", [ 'Veemo', 'Woomy!' ]]
+            ";
+
+            var expectedNode = new TomlNode
+            {
+                    ["array"] = new TomlNode[] {"foo", "bar", "baz"},
+                    ["multiline_array"] = new TomlNode[] {"foo", "bar", "baz"},
+                    ["complex_array"] = new TomlNode[]
+                    {
+                            "This is a test of a complex multiline string", "bar",
+                            $"Just to make sure{Environment.NewLine}we still work as expected{Environment.NewLine}because reasons", "baz"
+                    },
+                    ["empty_array"] = new TomlArray(),
+                    ["multi_array"] = new TomlNode[]
+                            {new TomlNode[] {"bananas", "apples"}, "Dunno what this is", new TomlNode[] {"Veemo", "Woomy!"}}
+            };
+
+            using (var sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
+        }
+
+        [TestMethod]
         public void TestKeyParse()
         {
             string input = @"
@@ -84,16 +136,16 @@ namespace TommyTests
                     },
                     ["a"] = new TomlNode
                     {
-                        ["b"] = new TomlNode
-                        {
-                            ["c"] = new TomlNode
+                            ["b"] = new TomlNode
                             {
-                                ["d"] = new TomlTable
-                                {
-                                    ["str1"] = "Hello, separated!"
-                                }
+                                    ["c"] = new TomlNode
+                                    {
+                                            ["d"] = new TomlTable
+                                            {
+                                                    ["str1"] = "Hello, separated!"
+                                            }
+                                    }
                             }
-                        }
                     }
             };
 

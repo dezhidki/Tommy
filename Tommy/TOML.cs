@@ -7,40 +7,83 @@ namespace Tommy
 {
     public class TomlNode
     {
-        private string _rawValue;
         private Dictionary<string, TomlNode> children;
         public Dictionary<string, TomlNode> Children => children ?? (children = new Dictionary<string, TomlNode>());
 
-        public bool HasValue { get; protected set; }
+        public virtual bool HasValue { get; } = false;
+        public virtual bool IsArray { get; } = false;
+        public virtual bool IsTable { get; } = false;
 
-        public bool IsTable { get; protected set; }
-
-        public TomlNode this[string key]
+        public virtual TomlNode this[string key]
         {
             get => Children[key];
             set => Children[key] = value;
         }
 
-        public string RawValue
+        public static implicit operator TomlNode(string str) =>
+                new TomlString
+                {
+                        RawValue = str
+                };
+
+        public static implicit operator TomlNode(TomlNode[] nodes)
         {
-            get => _rawValue;
-            set
-            {
-                HasValue = true;
-                _rawValue = value;
-            }
+            var result = new TomlArray();
+            result.Values.AddRange(nodes);
+            return result;
+        }
+    }
+
+    public class TomlString : TomlNode
+    {
+        public override bool HasValue { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
         }
 
-        public static implicit operator TomlNode(string str) => new TomlNode {RawValue = str};
+        public string RawValue { get; set; }
+    }
+
+    public class TomlArray : TomlNode
+    {
+        private List<TomlNode> _values;
+        public override bool HasValue { get; } = true;
+        public override bool IsArray { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
+        }
+
+        public TomlNode this[int index]
+        {
+            get => Values[index];
+            set => Values[index] = value;
+        }
+
+        public List<TomlNode> Values => _values ?? (_values = new List<TomlNode>());
+
+        public void Add(TomlNode node)
+        {
+            Values.Add(node);
+        }
     }
 
     public class TomlTable : TomlNode
     {
-        public TomlTable() => IsTable = true;
+        public override bool HasValue { get; } = false;
+        public override bool IsTable { get; } = true;
     }
 
     public static class TOML
     {
+        private const char ARRAY_END_SYMBOL = ']';
+        private const char ARRAY_ITEM_SEPARATOR = ',';
+        private const char ARRAY_START_SYMBOL = '[';
         private const char BASIC_STRING_SYMBOL = '\"';
         private const char COMMENT_SYMBOL = '#';
         private const char ESCAPE_SYMBOL = '\\';
@@ -86,12 +129,12 @@ namespace Tommy
                     }
 
                     if (IsBareKey(c) || IsQuoted(c))
-                        state = ParseState.Key;
+                        state = ParseState.KeyValuePair;
                     else
                         throw new Exception($"Unexpected character \"{c}\"");
                 }
 
-                if (state == ParseState.Key)
+                if (state == ParseState.KeyValuePair)
                 {
                     if (IsQuoted(c) || IsBareKey(c))
                     {
@@ -106,36 +149,14 @@ namespace Tommy
 
                     if (c == KEY_VALUE_SEPARATOR)
                     {
-                        state = ParseState.Value;
+                        InsertNode(ReadValue(reader), currentNode, keyParts);
+                        keyParts.Clear();
+
+                        state = ParseState.SkipToNextLine;
                         continue;
                     }
 
                     throw new Exception("Invalid character in key!");
-                }
-
-                if (state == ParseState.Value)
-                {
-                    if (IsWhiteSpace(c))
-                        continue;
-
-                    if (IsQuoted(c))
-                    {
-                        string value = IsTripleQuote(c, reader, out string excess)
-                                               ? ReadQuotedValueMultiLine(c, reader)
-                                               : ReadQuotedValueSingleLine(c, reader, excess);
-
-                        var node = CreateValueNode(currentNode, keyParts);
-                        node.RawValue = value;
-                        keyParts.Clear();
-                    }
-
-                    // TODO: Numbers, Dates, Booleans, Lists, Inline Tables
-
-                    if (c == COMMENT_SYMBOL)
-                        throw new Exception("The key has no value!");
-
-                    state = ParseState.SkipToNextLine;
-                    continue;
                 }
 
                 if (state == ParseState.Table)
@@ -185,6 +206,100 @@ namespace Tommy
             }
 
             return rootNode;
+        }
+
+        private static TomlNode ReadValue(TextReader reader, char firstChar = '\0', bool skipNewlines = false)
+        {
+            // TODO: Replace reader.Read with reader.Peek for reduced mess
+            int cur = -1;
+            do
+            {
+                char c;
+
+                if (firstChar != '\0')
+                {
+                    c = firstChar;
+                    firstChar = '\0';
+                }
+                else if (cur < 0)
+                {
+                    continue;
+                }
+                else
+                {
+                    c = (char) cur;
+                }
+
+                if (IsWhiteSpace(c))
+                    continue;
+
+                if (IsQuoted(c))
+                {
+                    string value = IsTripleQuote(c, reader, out string excess)
+                                           ? ReadQuotedValueMultiLine(c, reader)
+                                           : ReadQuotedValueSingleLine(c, reader, excess);
+
+                    return new TomlString
+                    {
+                            RawValue = value
+                    };
+                }
+
+                if (c == ARRAY_START_SYMBOL)
+                    return ReadArray(reader);
+
+                // TODO: Numbers, Dates, Booleans, Lists, Inline Tables
+
+                if (c == COMMENT_SYMBOL)
+                    throw new Exception("No value found!");
+
+                if (IsNewLine(c) && !skipNewlines)
+                    throw new Exception("Encountered a newline when expecting a value!");
+            } while ((cur = reader.Read()) >= 0);
+
+            return null;
+        }
+
+        private static TomlArray ReadArray(TextReader reader)
+        {
+            var result = new TomlArray();
+
+            TomlNode currentValue = null;
+
+            int cur;
+            while ((cur = reader.Read()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (c == ARRAY_END_SYMBOL)
+                    break;
+
+                if (c == COMMENT_SYMBOL)
+                {
+                    reader.ReadLine();
+                    continue;
+                }
+
+                if (IsWhiteSpace(c) || IsNewLine(c))
+                    continue;
+
+                if (c == ARRAY_ITEM_SEPARATOR)
+                {
+                    if (currentValue == null)
+                        throw new Exception("Encountered multiple value separators!");
+
+                    result.Add(currentValue);
+                    currentValue = null;
+                    continue;
+                }
+
+                currentValue = ReadValue(reader, c, true);
+            }
+
+            if (currentValue != null)
+                result.Add(currentValue);
+
+            return result;
         }
 
         private static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == '\'';
@@ -296,6 +411,9 @@ namespace Tommy
                 break;
             }
 
+            if (buffer.Length == 0)
+                throw new Exception("Encountered extra . in key definition!");
+
             parts.Add(buffer.ToString());
             return c;
         }
@@ -352,6 +470,8 @@ namespace Tommy
                     continue;
                 }
 
+                first = false;
+
                 // Skip the current character if it is going to be escaped later
                 if (escaped)
                 {
@@ -369,7 +489,7 @@ namespace Tommy
                 }
 
                 // If we encounter an escape sequence...
-                if (c == ESCAPE_SYMBOL)
+                if (isBasic && c == ESCAPE_SYMBOL)
                 {
                     int next = reader.Peek();
                     if (next >= 0)
@@ -381,8 +501,8 @@ namespace Tommy
                             continue;
                         }
 
-                        // ...and we are in basic mode with \", skip the character
-                        if (isBasic && (char) next == quote)
+                        // ...and we have \", skip the character
+                        if ((char) next == quote)
                             escaped = true;
                     }
                 }
@@ -406,29 +526,31 @@ namespace Tommy
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
 
-        private static TomlNode CreateValueNode(TomlNode root, List<string> path)
+        private static void InsertNode(TomlNode node, TomlNode root, List<string> path)
         {
             var latestNode = root;
 
-            foreach (string subkey in path)
-            {
-                if (latestNode.Children.TryGetValue(subkey, out var node))
+            if (path.Count > 1)
+                for (int index = 0; index < path.Count - 1; index++)
                 {
-                    if (node.HasValue)
-                        throw new Exception("The key already has a value assigned to it!");
-                    if (node.IsTable)
-                        throw new Exception("The key is a table and thus is not a valid value");
-                }
-                else
-                {
-                    node = new TomlNode();
-                    latestNode[subkey] = node;
+                    string subkey = path[index];
+                    if (latestNode.Children.TryGetValue(subkey, out var currentNode))
+                    {
+                        if (currentNode.HasValue)
+                            throw new Exception("The key already has a value assigned to it!");
+                        if (currentNode.IsTable)
+                            throw new Exception("The key is a table and thus is not a valid value");
+                    }
+                    else
+                    {
+                        currentNode = new TomlNode();
+                        latestNode[subkey] = currentNode;
+                    }
+
+                    latestNode = currentNode;
                 }
 
-                latestNode = node;
-            }
-
-            return latestNode;
+            latestNode[path[path.Count - 1]] = node;
         }
 
         private static TomlTable CreateTable(TomlNode root, List<string> path)
@@ -461,8 +583,7 @@ namespace Tommy
         private enum ParseState
         {
             None,
-            Key,
-            Value,
+            KeyValuePair,
             SkipToNextLine,
             Table
         }
