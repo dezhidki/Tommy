@@ -5,6 +5,8 @@ using System.Text;
 
 namespace Tommy
 {
+    #region TOML Nodes
+
     public class TomlNode
     {
         private Dictionary<string, TomlNode> children;
@@ -79,21 +81,10 @@ namespace Tommy
         public override bool IsTable { get; } = true;
     }
 
+    #endregion
+
     public static class TOML
     {
-        private const char ARRAY_END_SYMBOL = ']';
-        private const char ARRAY_ITEM_SEPARATOR = ',';
-        private const char ARRAY_START_SYMBOL = '[';
-        private const char BASIC_STRING_SYMBOL = '\"';
-        private const char COMMENT_SYMBOL = '#';
-        private const char ESCAPE_SYMBOL = '\\';
-        private const char KEY_VALUE_SEPARATOR = '=';
-        private const char NEWLINE_CARRIAGE_RETURN_CHARACTER = '\r';
-        private const char NEWLINE_CHARACTER = '\n';
-        private const char SUBKEY_SEPARATOR = '.';
-        private const char TABLE_END_SYMBOL = ']';
-        private const char TABLE_START_SYMBOL = '[';
-
         public static TomlNode Parse(TextReader reader)
         {
             var rootNode = new TomlNode();
@@ -208,6 +199,87 @@ namespace Tommy
             return rootNode;
         }
 
+        private static TomlArray ReadArray(TextReader reader)
+        {
+            var result = new TomlArray();
+
+            TomlNode currentValue = null;
+
+            int cur;
+            while ((cur = reader.Read()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (c == ARRAY_END_SYMBOL)
+                    break;
+
+                if (c == COMMENT_SYMBOL)
+                {
+                    reader.ReadLine();
+                    continue;
+                }
+
+                if (IsWhiteSpace(c) || IsNewLine(c))
+                    continue;
+
+                if (c == ARRAY_ITEM_SEPARATOR)
+                {
+                    if (currentValue == null)
+                        throw new Exception("Encountered multiple value separators!");
+
+                    result.Add(currentValue);
+                    currentValue = null;
+                    continue;
+                }
+
+                currentValue = ReadValue(reader, c, true);
+            }
+
+            if (currentValue != null)
+                result.Add(currentValue);
+
+            return result;
+        }
+
+        private enum ParseState
+        {
+            None,
+            KeyValuePair,
+            SkipToNextLine,
+            Table
+        }
+
+        #region Character Definitions
+
+        private const char ARRAY_END_SYMBOL = ']';
+        private const char ARRAY_ITEM_SEPARATOR = ',';
+        private const char ARRAY_START_SYMBOL = '[';
+        private const char BASIC_STRING_SYMBOL = '\"';
+        private const char COMMENT_SYMBOL = '#';
+        private const char ESCAPE_SYMBOL = '\\';
+        private const char KEY_VALUE_SEPARATOR = '=';
+        private const char NEWLINE_CARRIAGE_RETURN_CHARACTER = '\r';
+        private const char NEWLINE_CHARACTER = '\n';
+        private const char SUBKEY_SEPARATOR = '.';
+        private const char TABLE_END_SYMBOL = ']';
+        private const char TABLE_START_SYMBOL = '[';
+
+
+        private static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == '\'';
+
+        private static bool IsWhiteSpace(char c) => c == ' ' || c == '\t';
+
+        private static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
+
+        private static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
+
+        private static bool IsBareKey(char c) =>
+                'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
+
+        #endregion
+
+        #region Key-Value pair parsing
+
         private static TomlNode ReadValue(TextReader reader, char firstChar = '\0', bool skipNewlines = false)
         {
             // TODO: Replace reader.Read with reader.Peek for reduced mess
@@ -258,97 +330,6 @@ namespace Tommy
             } while ((cur = reader.Read()) >= 0);
 
             return null;
-        }
-
-        private static TomlArray ReadArray(TextReader reader)
-        {
-            var result = new TomlArray();
-
-            TomlNode currentValue = null;
-
-            int cur;
-            while ((cur = reader.Read()) >= 0)
-            {
-                char c = (char) cur;
-
-                if (c == ARRAY_END_SYMBOL)
-                    break;
-
-                if (c == COMMENT_SYMBOL)
-                {
-                    reader.ReadLine();
-                    continue;
-                }
-
-                if (IsWhiteSpace(c) || IsNewLine(c))
-                    continue;
-
-                if (c == ARRAY_ITEM_SEPARATOR)
-                {
-                    if (currentValue == null)
-                        throw new Exception("Encountered multiple value separators!");
-
-                    result.Add(currentValue);
-                    currentValue = null;
-                    continue;
-                }
-
-                currentValue = ReadValue(reader, c, true);
-            }
-
-            if (currentValue != null)
-                result.Add(currentValue);
-
-            return result;
-        }
-
-        private static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == '\'';
-
-        private static bool IsWhiteSpace(char c) => c == ' ' || c == '\t';
-
-        private static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
-
-        private static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
-
-        private static bool IsBareKey(char c) =>
-                'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
-
-        private static bool IsTripleQuote(char quote, TextReader reader, out string excess)
-        {
-            var buffer = new char[2];
-            int read = reader.ReadBlock(buffer, 0, 2);
-
-            if (read == 2 && buffer[0] == quote && buffer[1] == quote)
-            {
-                excess = null;
-                return true;
-            }
-
-            excess = new string(buffer);
-            return false;
-        }
-
-        private static bool ProcessQuotedValueCharacter(char quote, bool isBasic, char c, int next, StringBuilder sb, ref bool escaped)
-        {
-            if (escaped)
-            {
-                sb.Append(c);
-                escaped = false;
-                return false;
-            }
-
-            if (c == quote)
-                return true;
-
-            if (isBasic && c == ESCAPE_SYMBOL)
-                if (next >= 0 && (char) next == quote)
-                    escaped = true;
-
-            if (c == NEWLINE_CHARACTER)
-                throw new Exception("Encountered newline in single line quote");
-
-            sb.Append(c);
-            return false;
         }
 
         private static char ReadKeyName(TextReader tr, ref List<string> parts, char firstChar, char until, bool skipWhitespace = false)
@@ -416,6 +397,48 @@ namespace Tommy
 
             parts.Add(buffer.ToString());
             return c;
+        }
+
+        #endregion
+
+        #region String parsing
+
+        private static bool IsTripleQuote(char quote, TextReader reader, out string excess)
+        {
+            var buffer = new char[2];
+            int read = reader.ReadBlock(buffer, 0, 2);
+
+            if (read == 2 && buffer[0] == quote && buffer[1] == quote)
+            {
+                excess = null;
+                return true;
+            }
+
+            excess = new string(buffer);
+            return false;
+        }
+
+        private static bool ProcessQuotedValueCharacter(char quote, bool isBasic, char c, int next, StringBuilder sb, ref bool escaped)
+        {
+            if (escaped)
+            {
+                sb.Append(c);
+                escaped = false;
+                return false;
+            }
+
+            if (c == quote)
+                return true;
+
+            if (isBasic && c == ESCAPE_SYMBOL)
+                if (next >= 0 && (char) next == quote)
+                    escaped = true;
+
+            if (c == NEWLINE_CHARACTER)
+                throw new Exception("Encountered newline in single line quote");
+
+            sb.Append(c);
+            return false;
         }
 
         private static string ReadQuotedValueSingleLine(char quote, TextReader reader, string initialData)
@@ -526,6 +549,10 @@ namespace Tommy
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
 
+        #endregion
+
+        #region Node creation
+
         private static void InsertNode(TomlNode node, TomlNode root, List<string> path)
         {
             var latestNode = root;
@@ -580,14 +607,10 @@ namespace Tommy
             return (TomlTable) latestNode;
         }
 
-        private enum ParseState
-        {
-            None,
-            KeyValuePair,
-            SkipToNextLine,
-            Table
-        }
+        #endregion
     }
+
+    #region Parse utilities
 
     internal static class ParseUtils
     {
@@ -643,4 +666,6 @@ namespace Tommy
             return stringBuilder.ToString();
         }
     }
+
+    #endregion
 }
