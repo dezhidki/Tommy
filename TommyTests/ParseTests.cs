@@ -14,7 +14,7 @@ namespace TommyTests
             string input = @"
             # This is a test comment
             
-            key = ""value"" # This is a comment
+            key=""value"" # This is a comment
             # key = ""value2""
             bare_key = ""value""#Another comment
             bare-key = ""value""
@@ -34,8 +34,8 @@ namespace TommyTests
                     ["literal-key"] = "Hello\\nWorld",
                     ["escaped-quote"] = "Hello, \"world\""
             };
-            
-            using(StringReader sr = new StringReader(input))
+
+            using (var sr = new StringReader(input))
                 Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
 
@@ -58,6 +58,9 @@ namespace TommyTests
 
             [ baz ] # This has some extra whitespace
             str1 = ""Hello, baz!""
+                
+            [ a . b . c  . d  ] # We should also allow spaces around the table key
+            str1 = ""Hello, separated!""
             ";
 
             var expectedNode = new TomlNode
@@ -65,23 +68,36 @@ namespace TommyTests
                     ["str1"] = "Hello, root node!",
                     ["foo"] = new TomlTable
                     {
-                        ["str1"] = "Hello, foo!",
-                        ["bar"] = new TomlTable
-                        {
-                            ["str1"] = "Hello, foo.bar!",
-                            ["$baz ^?\n"] = new TomlTable
+                            ["str1"] = "Hello, foo!",
+                            ["bar"] = new TomlTable
                             {
-                                ["str1"] = "Hello, weird boy!"
+                                    ["str1"] = "Hello, foo.bar!",
+                                    ["$baz ^?\n"] = new TomlTable
+                                    {
+                                            ["str1"] = "Hello, weird boy!"
+                                    }
                             }
-                        }
                     },
                     ["baz"] = new TomlTable
                     {
-                        ["str1"] = "Hello, baz!"
+                            ["str1"] = "Hello, baz!"
+                    },
+                    ["a"] = new TomlNode
+                    {
+                        ["b"] = new TomlNode
+                        {
+                            ["c"] = new TomlNode
+                            {
+                                ["d"] = new TomlTable
+                                {
+                                    ["str1"] = "Hello, separated!"
+                                }
+                            }
+                        }
                     }
             };
 
-            using (StringReader sr = new StringReader(input))
+            using (var sr = new StringReader(input))
                 Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
 
@@ -92,7 +108,7 @@ namespace TommyTests
             key = # This should be invalid
             ";
 
-            using (StringReader sr = new StringReader(input))
+            using (var sr = new StringReader(input))
             {
                 bool fail = false;
                 try
@@ -104,7 +120,7 @@ namespace TommyTests
                     fail = true;
                 }
 
-                if(!fail)
+                if (!fail)
                     Assert.Fail("The invalid key should cause an exception");
             }
         }
@@ -124,25 +140,25 @@ namespace TommyTests
 
             var correctNode = new TomlNode
             {
-                ["test"] = new TomlNode
-                {
-                    ["str1"] = "Hello, world!",
-                    ["str2"] = "Hello, world!",
-                    ["str4"] = "Hello, world!"
-                },
-                ["test2"] = new TomlNode
-                {
-                    ["$foo\n"] = new TomlNode
+                    ["test"] = new TomlNode
                     {
-                        ["bar\\n"] = new TomlNode
-                        {
-                            ["baz"] = "Hello, world!"
-                        }
+                            ["str1"] = "Hello, world!",
+                            ["str2"] = "Hello, world!",
+                            ["str4"] = "Hello, world!"
+                    },
+                    ["test2"] = new TomlNode
+                    {
+                            ["$foo\n"] = new TomlNode
+                            {
+                                    ["bar\\n"] = new TomlNode
+                                    {
+                                            ["baz"] = "Hello, world!"
+                                    }
+                            }
                     }
-                }
             };
 
-            using (StringReader sr = new StringReader(input))
+            using (var sr = new StringReader(input))
                 Assert.That.TomlNodesAreEqual(correctNode, TOML.Parse(sr));
         }
 
@@ -165,7 +181,8 @@ The quick brown \
                     fox jumps over \
                     the lazy dog.\
                    """"""
-
+            
+            # Some strings to test literal multiline parsing
             regex2 = '''I [dw]on't need \d{2} apples'''
 
             lines  = '''
@@ -178,14 +195,15 @@ trimmed in raw strings.
 
             var expectedNode = new TomlNode
             {
-                ["str1"] = "The quick brown fox jumps over the lazy dog.",
-                ["str2"] = "The quick brown fox jumps over the lazy dog.",
-                ["str3"] = "The quick brown fox jumps over the lazy dog.",
-                ["regex2"] = @"I [dw]on't need \d{2} apples",
-                ["lines"] = $"The first newline is{Environment.NewLine}trimmed in raw strings.{Environment.NewLine}  All other whitespace{Environment.NewLine}  is preserved.{Environment.NewLine}"
+                    ["str1"] = "The quick brown fox jumps over the lazy dog.",
+                    ["str2"] = "The quick brown fox jumps over the lazy dog.",
+                    ["str3"] = "The quick brown fox jumps over the lazy dog.",
+                    ["regex2"] = @"I [dw]on't need \d{2} apples",
+                    ["lines"] =
+                            $"The first newline is{Environment.NewLine}trimmed in raw strings.{Environment.NewLine}  All other whitespace{Environment.NewLine}  is preserved.{Environment.NewLine}"
             };
 
-            using (StringReader sr = new StringReader(input))
+            using (var sr = new StringReader(input))
                 Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
     }

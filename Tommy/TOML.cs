@@ -98,8 +98,7 @@ namespace Tommy
                         if (keyParts.Count != 0)
                             throw new Exception("Encountered extra characters in key definition!");
 
-                        ReadKeyName(reader, ref keyParts, c);
-                        continue;
+                        c = ReadKeyName(reader, ref keyParts, c, KEY_VALUE_SEPARATOR);
                     }
 
                     if (IsWhiteSpace(c))
@@ -148,7 +147,7 @@ namespace Tommy
 
                     if (keyParts.Count == 0)
                     {
-                        c = ReadKeyName(reader, ref keyParts, c);
+                        c = ReadKeyName(reader, ref keyParts, c, TABLE_END_SYMBOL, true);
                         if (keyParts.Count == 0)
                             throw new Exception("The table key is empty!");
 
@@ -237,7 +236,7 @@ namespace Tommy
             return false;
         }
 
-        private static char ReadKeyName(TextReader tr, ref List<string> parts, char firstChar)
+        private static char ReadKeyName(TextReader tr, ref List<string> parts, char firstChar, char until, bool skipWhitespace = false)
         {
             var buffer = new StringBuilder();
 
@@ -254,9 +253,15 @@ namespace Tommy
             {
                 c = (char) cur;
 
-                // Stop if we see whitespace in non-quoted context; let main parser cause the possible error
-                if (IsWhiteSpace(c) || c == KEY_VALUE_SEPARATOR)
+                // Reached the final character
+                if (c == until)
                     break;
+
+                if (IsWhiteSpace(c))
+                    if (skipWhitespace)
+                        continue;
+                    else
+                        break;
 
                 if (c == SUBKEY_SEPARATOR)
                 {
