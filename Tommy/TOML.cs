@@ -96,7 +96,7 @@ namespace Tommy
             var keyParts = new List<string>();
 
             int currentChar;
-            while ((currentChar = reader.Read()) >= 0)
+            while ((currentChar = reader.Peek()) >= 0)
             {
                 char c = (char) currentChar;
 
@@ -104,7 +104,7 @@ namespace Tommy
                 {
                     // Skip white space
                     if (IsWhiteSpace(c) || IsNewLine(c))
-                        continue;
+                        goto consume_character;
 
                     // Start of a comment; ignore until newline
                     if (c == COMMENT_SYMBOL)
@@ -116,7 +116,7 @@ namespace Tommy
                     if (c == TABLE_START_SYMBOL)
                     {
                         state = ParseState.Table;
-                        continue;
+                        goto consume_character;
                     }
 
                     if (IsBareKey(c) || IsQuoted(c))
@@ -127,27 +127,11 @@ namespace Tommy
 
                 if (state == ParseState.KeyValuePair)
                 {
-                    if (IsQuoted(c) || IsBareKey(c))
-                    {
-                        if (keyParts.Count != 0)
-                            throw new Exception("Encountered extra characters in key definition!");
-
-                        c = ReadKeyName(reader, ref keyParts, c, KEY_VALUE_SEPARATOR);
-                    }
-
-                    if (IsWhiteSpace(c))
-                        continue;
-
-                    if (c == KEY_VALUE_SEPARATOR)
-                    {
-                        InsertNode(ReadValue(reader), currentNode, keyParts);
-                        keyParts.Clear();
-
-                        state = ParseState.SkipToNextLine;
-                        continue;
-                    }
-
-                    throw new Exception("Invalid character in key!");
+                    var keyValuePair = ReadKeyValuePair(reader, keyParts);
+                    InsertNode(keyValuePair, currentNode, keyParts);
+                    keyParts.Clear();
+                    state = ParseState.SkipToNextLine;
+                    continue;
                 }
 
                 if (state == ParseState.Table)
@@ -155,16 +139,14 @@ namespace Tommy
                     // TODO: Array table
 
                     if (IsWhiteSpace(c))
-                        continue;
+                        goto consume_character;
 
                     if (keyParts.Count == 0)
                     {
-                        c = ReadKeyName(reader, ref keyParts, c, TABLE_END_SYMBOL, true);
+                        ReadKeyName(reader, ref keyParts, TABLE_END_SYMBOL, true);
                         if (keyParts.Count == 0)
                             throw new Exception("The table key is empty!");
-
-                        if (IsWhiteSpace(c))
-                            continue;
+                        continue;
                     }
 
                     if (c == TABLE_END_SYMBOL)
@@ -172,7 +154,7 @@ namespace Tommy
                         currentNode = CreateTable(rootNode, keyParts);
                         keyParts.Clear();
                         state = ParseState.SkipToNextLine;
-                        continue;
+                        goto consume_character;
                     }
 
                     if (keyParts.Count != 0)
@@ -182,36 +164,62 @@ namespace Tommy
                 if (state == ParseState.SkipToNextLine)
                 {
                     if (IsWhiteSpace(c) || c == NEWLINE_CARRIAGE_RETURN_CHARACTER)
-                        continue;
+                        goto consume_character;
 
                     if (c == COMMENT_SYMBOL || c == NEWLINE_CHARACTER)
                     {
-                        if (c == COMMENT_SYMBOL)
-                            reader.ReadLine();
                         state = ParseState.None;
-                        continue;
+                        if (c == COMMENT_SYMBOL)
+                        {
+                            reader.ReadLine();
+                            continue;
+                        }
+
+                        goto consume_character;
                     }
 
                     throw new Exception("Unexpected symbol after the parsed content");
                 }
+
+                consume_character:
+                reader.Read();
             }
 
             return rootNode;
         }
 
+        /// <summary>
+        ///     Reads the array.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the start of the array:
+        ///     ["a", "b"]
+        ///     ^
+        ///     Consumes all characters until the end of the array:
+        ///     ["a", "b"]
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <returns></returns>
         private static TomlArray ReadArray(TextReader reader)
         {
+            // Consume the start of array character
+            reader.Read();
+
             var result = new TomlArray();
 
             TomlNode currentValue = null;
 
             int cur;
-            while ((cur = reader.Read()) >= 0)
+            while ((cur = reader.Peek()) >= 0)
             {
                 char c = (char) cur;
 
                 if (c == ARRAY_END_SYMBOL)
+                {
+                    reader.Read();
                     break;
+                }
 
                 if (c == COMMENT_SYMBOL)
                 {
@@ -220,23 +228,79 @@ namespace Tommy
                 }
 
                 if (IsWhiteSpace(c) || IsNewLine(c))
-                    continue;
+                    goto consume_character;
 
-                if (c == ARRAY_ITEM_SEPARATOR)
+                if (c == ITEM_SEPARATOR)
                 {
                     if (currentValue == null)
                         throw new Exception("Encountered multiple value separators!");
 
                     result.Add(currentValue);
                     currentValue = null;
-                    continue;
+                    goto consume_character;
                 }
 
-                currentValue = ReadValue(reader, c, true);
+                currentValue = ReadValue(reader, true);
+                continue;
+
+                consume_character:
+                reader.Read();
             }
 
             if (currentValue != null)
                 result.Add(currentValue);
+
+            return result;
+        }
+
+        private static TomlNode ReadInlineTable(TextReader reader)
+        {
+            var result = new TomlTable();
+
+            TomlNode currentValue = null;
+
+            var keyParts = new List<string>();
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (c == INLINE_TABLE_END_SYMBOL)
+                {
+                    reader.Read();
+                    break;
+                }
+
+                if (c == COMMENT_SYMBOL)
+                    throw new Exception("Incomplete inline table definition");
+
+                if (IsNewLine(c))
+                    throw new Exception("Inline tables are only allowed to be on single line");
+
+                if (IsWhiteSpace(c))
+                    goto consume_character;
+
+                if (c == ITEM_SEPARATOR)
+                {
+                    if (currentValue == null)
+                        throw new Exception("Encountered multiple value separators!");
+
+                    InsertNode(currentValue, result, keyParts);
+                    keyParts.Clear();
+                    currentValue = null;
+                    goto consume_character;
+                }
+
+                currentValue = ReadKeyValuePair(reader, keyParts);
+                continue;
+
+                consume_character:
+                reader.Read();
+            }
+
+            if (currentValue != null)
+                InsertNode(currentValue, result, keyParts);
 
             return result;
         }
@@ -252,7 +316,7 @@ namespace Tommy
         #region Character Definitions
 
         private const char ARRAY_END_SYMBOL = ']';
-        private const char ARRAY_ITEM_SEPARATOR = ',';
+        private const char ITEM_SEPARATOR = ',';
         private const char ARRAY_START_SYMBOL = '[';
         private const char BASIC_STRING_SYMBOL = '\"';
         private const char COMMENT_SYMBOL = '#';
@@ -263,6 +327,8 @@ namespace Tommy
         private const char SUBKEY_SEPARATOR = '.';
         private const char TABLE_END_SYMBOL = ']';
         private const char TABLE_START_SYMBOL = '[';
+        private const char INLINE_TABLE_START_SYMBOL = '{';
+        private const char INLINE_TABLE_END_SYMBOL = '}';
 
 
         private static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == '\'';
@@ -280,34 +346,84 @@ namespace Tommy
 
         #region Key-Value pair parsing
 
-        private static TomlNode ReadValue(TextReader reader, char firstChar = '\0', bool skipNewlines = false)
+        /// <summary>
+        ///     Reads a single key-value pair.
+        /// </summary>
+        /// <remarks>
+        ///     The method assumes the cursor is at the start of the key:
+        ///     foo.bar = "value"
+        ///     ^
+        ///     The method consumes all the characters that belong to the key-value-pair:
+        ///     foo.bar = "value"
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <param name="keyParts"></param>
+        /// <returns></returns>
+        private static TomlNode ReadKeyValuePair(TextReader reader, List<string> keyParts)
         {
-            // TODO: Replace reader.Read with reader.Peek for reduced mess
-            int cur = -1;
-            do
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
             {
-                char c;
+                char c = (char) cur;
 
-                if (firstChar != '\0')
+                if (IsQuoted(c) || IsBareKey(c))
                 {
-                    c = firstChar;
-                    firstChar = '\0';
-                }
-                else if (cur < 0)
-                {
+                    if (keyParts.Count != 0)
+                        throw new Exception("Encountered extra characters in key definition!");
+
+                    ReadKeyName(reader, ref keyParts, KEY_VALUE_SEPARATOR);
                     continue;
-                }
-                else
-                {
-                    c = (char) cur;
                 }
 
                 if (IsWhiteSpace(c))
+                {
+                    reader.Read();
                     continue;
+                }
+
+                if (c == KEY_VALUE_SEPARATOR)
+                {
+                    reader.Read();
+                    return ReadValue(reader);
+                }
+
+                throw new Exception("Invalid character in key!");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///     Reads a single value.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the start of the value (or whitespace before the value):
+        ///     "test"
+        ///     ^
+        ///     The method consumes all characters that belong to the value:
+        ///     "test"
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <param name="skipNewlines"></param>
+        /// <returns></returns>
+        private static TomlNode ReadValue(TextReader reader, bool skipNewlines = false)
+        {
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (IsWhiteSpace(c))
+                {
+                    reader.Read();
+                    continue;
+                }
 
                 if (IsQuoted(c))
                 {
-                    string value = IsTripleQuote(c, reader, out string excess)
+                    string value = IsTripleQuote(c, reader, out char excess)
                                            ? ReadQuotedValueMultiLine(c, reader)
                                            : ReadQuotedValueSingleLine(c, reader, excess);
 
@@ -316,6 +432,9 @@ namespace Tommy
                             RawValue = value
                     };
                 }
+
+                if (c == INLINE_TABLE_START_SYMBOL)
+                    return ReadInlineTable(reader);
 
                 if (c == ARRAY_START_SYMBOL)
                     return ReadArray(reader);
@@ -327,27 +446,34 @@ namespace Tommy
 
                 if (IsNewLine(c) && !skipNewlines)
                     throw new Exception("Encountered a newline when expecting a value!");
-            } while ((cur = reader.Read()) >= 0);
+            }
 
             return null;
         }
 
-        private static char ReadKeyName(TextReader tr, ref List<string> parts, char firstChar, char until, bool skipWhitespace = false)
+        /// <summary>
+        ///     Reads the name of the key (either table key or value key).
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the first value in the key name:
+        ///     foo.bar
+        ///     ^
+        ///     The method consumes all of the key so that the cursor position is after the last character:
+        ///     foo.bar
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <param name="parts"></param>
+        /// <param name="until"></param>
+        /// <param name="skipWhitespace"></param>
+        private static void ReadKeyName(TextReader reader, ref List<string> parts, char until, bool skipWhitespace = false)
         {
             var buffer = new StringBuilder();
-
-            bool quoted = IsQuoted(firstChar);
-
-            if (quoted)
-                buffer.Append(ReadQuotedValueSingleLine(firstChar, tr, null));
-            else
-                buffer.Append(firstChar);
-
+            bool quoted = false;
             int cur;
-            char c = '\0';
-            while ((cur = tr.Read()) >= 0)
+            while ((cur = reader.Peek()) >= 0)
             {
-                c = (char) cur;
+                char c = (char) cur;
 
                 // Reached the final character
                 if (c == until)
@@ -355,7 +481,7 @@ namespace Tommy
 
                 if (IsWhiteSpace(c))
                     if (skipWhitespace)
-                        continue;
+                        goto consume_character;
                     else
                         break;
 
@@ -367,7 +493,7 @@ namespace Tommy
                     parts.Add(buffer.ToString());
                     buffer.Length = 0;
                     quoted = false;
-                    continue;
+                    goto consume_character;
                 }
 
                 if (IsQuoted(c))
@@ -377,7 +503,8 @@ namespace Tommy
                     if (buffer.Length != 0)
                         throw new Exception("Encountered a premature quote!");
 
-                    buffer.Append(ReadQuotedValueSingleLine(c, tr, null));
+                    // Consume the quote character and read the key name
+                    buffer.Append(ReadQuotedValueSingleLine((char) reader.Read(), reader));
                     quoted = true;
                     continue;
                 }
@@ -385,37 +512,75 @@ namespace Tommy
                 if (IsBareKey(c))
                 {
                     buffer.Append(c);
-                    continue;
+                    goto consume_character;
                 }
 
                 // If we see an invalid symbol, let the next parser handle it
                 break;
+
+                consume_character:
+                reader.Read();
             }
 
             if (buffer.Length == 0)
                 throw new Exception("Encountered extra . in key definition!");
 
             parts.Add(buffer.ToString());
-            return c;
         }
 
         #endregion
 
         #region String parsing
 
-        private static bool IsTripleQuote(char quote, TextReader reader, out string excess)
+        /// <summary>
+        ///     Checks whether the quote is triple quote.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the first quote character:
+        ///     """
+        ///     ^
+        ///     Consumes either one character (if not triple quote) or three characters (if triple quote)
+        ///     """
+        ///     ^
+        /// </remarks>
+        /// <param name="quote"></param>
+        /// <param name="reader"></param>
+        /// <param name="excess"></param>
+        /// <returns></returns>
+        private static bool IsTripleQuote(char quote, TextReader reader, out char excess)
         {
-            var buffer = new char[2];
-            int read = reader.ReadBlock(buffer, 0, 2);
+            // Copypasta, but it's faster...
 
-            if (read == 2 && buffer[0] == quote && buffer[1] == quote)
+            int cur;
+            // Consume the first quote
+            reader.Read();
+
+            if ((cur = reader.Peek()) < 0)
+                throw new Exception("Unexpected end of file!");
+
+            if ((char) cur != quote)
             {
-                excess = null;
-                return true;
+                excess = '\0';
+                return false;
             }
 
-            excess = new string(buffer);
-            return false;
+            // Consume the second quote
+            reader.Read();
+
+            if ((cur = reader.Peek()) < 0)
+                throw new Exception("Unexpected end of file!");
+
+            if ((char) cur != quote)
+            {
+                excess = (char) cur;
+                return false;
+            }
+
+            // Consume the final quote
+            reader.Read();
+
+            excess = '\0';
+            return true;
         }
 
         private static bool ProcessQuotedValueCharacter(char quote, bool isBasic, char c, int next, StringBuilder sb, ref bool escaped)
@@ -441,23 +606,30 @@ namespace Tommy
             return false;
         }
 
-        private static string ReadQuotedValueSingleLine(char quote, TextReader reader, string initialData)
+        /// <summary>
+        ///     Reads a single-line string from the string.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the next available character is at the string contents:
+        ///     "test"
+        ///     ^
+        ///     (possibly with initial data)
+        ///     The method consumes the whole string along with the closing quote:
+        ///     "test"
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <param name="initialData"></param>
+        /// <returns></returns>
+        private static string ReadQuotedValueSingleLine(char quote, TextReader reader, char initialData = '\0')
         {
             bool isBasic = quote == BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
 
             bool escaped = false;
 
-            // Catch up with possible initial data
-            if (initialData != null)
-                for (int i = 0; i < initialData.Length; i++)
-                    if (ProcessQuotedValueCharacter(quote,
-                                                    isBasic,
-                                                    initialData[i],
-                                                    i < initialData.Length - 1 ? initialData[i + 1] : -1,
-                                                    sb,
-                                                    ref escaped))
-                        return isBasic ? sb.ToString().Unescape() : sb.ToString();
+            if (initialData != '\0' && ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
+                return isBasic ? sb.ToString().Unescape() : sb.ToString();
 
             int cur;
             while ((cur = reader.Read()) >= 0)
@@ -470,6 +642,20 @@ namespace Tommy
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
 
+        /// <summary>
+        ///     Reads a multiline string.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the *first value* that belongs to the string:
+        ///     """test"""
+        ///     ^
+        ///     Consumes the whole string along with ending quotes:
+        ///     """test"""
+        ///     ^
+        /// </remarks>
+        /// <param name="quote"></param>
+        /// <param name="reader"></param>
+        /// <returns></returns>
         private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
         {
             bool isBasic = quote == BASIC_STRING_SYMBOL;
