@@ -9,6 +9,53 @@ namespace TommyTests
     public class ParseTests
     {
         [TestMethod]
+        public void TestInlineTableParse()
+        {
+            string input = @"
+            # Test inline tables
+
+            inline-table = { foo = ""foo"", bar = ""bar"" } # Inline table support
+            inline-table-arrays = { arr = [                 # Multiline inline tables only allowed for multiline values
+                        ""foo"",
+                        ""bar"",
+            ] }
+            
+            nested-table = { foo.bar = { bar = 'Hello', foo.baz = 'World!' }, ""$0"" = ""Hello, world!"" } # Nested inline tables with literal keys
+            ";
+
+            var expectedNode = new TomlNode
+            {
+                    ["inline-table"] = new TomlTable
+                    {
+                            ["foo"] = "foo",
+                            ["bar"] = "bar"
+                    },
+                    ["inline-table-arrays"] = new TomlTable
+                    {
+                            ["arr"] = new TomlNode[] {"foo", "bar"}
+                    },
+                    ["nested-table"] = new TomlTable
+                    {
+                            ["foo"] = new TomlNode
+                            {
+                                    ["bar"] = new TomlTable
+                                    {
+                                            ["bar"] = "Hello",
+                                            ["foo"] = new TomlNode
+                                            {
+                                                    ["baz"] = "World!"
+                                            }
+                                    }
+                            },
+                            ["$0"] = "Hello, world!"
+                    }
+            };
+
+            using (var sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
+        }
+
+        [TestMethod]
         public void TestArrayParse()
         {
             string input = @"

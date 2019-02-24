@@ -255,6 +255,8 @@ namespace Tommy
 
         private static TomlNode ReadInlineTable(TextReader reader)
         {
+            reader.Read();
+
             var result = new TomlTable();
 
             TomlNode currentValue = null;
