@@ -95,6 +95,9 @@ namespace Tommy
 
             var keyParts = new List<string>();
 
+            bool insideArrayTable = false;
+            bool arrayTable = false;
+
             int currentChar;
             while ((currentChar = reader.Peek()) >= 0)
             {
@@ -143,16 +146,30 @@ namespace Tommy
 
                     if (keyParts.Count == 0)
                     {
+                        // We have array table
+                        if (c == TABLE_START_SYMBOL)
+                        {
+                            // Consume the character
+                            reader.Read();
+                            arrayTable = true;
+                        }
+
                         ReadKeyName(reader, ref keyParts, TABLE_END_SYMBOL, true);
                         if (keyParts.Count == 0)
                             throw new Exception("The table key is empty!");
+
                         continue;
                     }
 
                     if (c == TABLE_END_SYMBOL)
                     {
-                        currentNode = CreateTable(rootNode, keyParts);
+                        if (arrayTable)
+                            if (reader.Peek() < 0 || (char) reader.Peek() != TABLE_END_SYMBOL)
+                                throw new Exception("The array table is not closed!");
+
+                        currentNode = CreateTable(rootNode, keyParts, arrayTable);
                         keyParts.Clear();
+                        arrayTable = false;
                         state = ParseState.SkipToNextLine;
                         goto consume_character;
                     }
@@ -768,7 +785,7 @@ namespace Tommy
             latestNode[path[path.Count - 1]] = node;
         }
 
-        private static TomlTable CreateTable(TomlNode root, List<string> path)
+        private static TomlTable CreateTable(TomlNode root, List<string> path, bool arrayTable)
         {
             if (path.Count == 0)
                 return null;
@@ -782,9 +799,31 @@ namespace Tommy
                 {
                     if (node.HasValue)
                         throw new Exception("The key has a value assigned to it!");
+
+                    if (index == path.Count - 1)
+                    {
+                        if (!arrayTable)
+                            throw new Exception("The table has been already defined previously!");
+                        if (!node.IsArray)
+                            throw new Exception("The node is not an array!");
+
+                        latestNode = new TomlTable();
+                        ((TomlArray) node).Add(latestNode);
+                        break;
+                    }
                 }
                 else
                 {
+                    if (index == path.Count - 1 && arrayTable)
+                    {
+                        var table = new TomlTable();
+                        var arr = new TomlArray();
+                        arr.Add(table);
+                        latestNode[subkey] = arr;
+                        latestNode = table;
+                        break;
+                    }
+
                     node = index == path.Count - 1 ? new TomlTable() : new TomlNode();
                     latestNode[subkey] = node;
                 }
