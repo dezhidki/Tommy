@@ -47,14 +47,14 @@ namespace TommyDecoder
                         break;
                     case TomlFloat f:
                         obj["type"] = "float";
-                        obj["value"] = f.Value.ToString(CultureInfo.InvariantCulture);
+                        obj["value"] = f.Value.ToString("G",CultureInfo.InvariantCulture);
                         break;
                     case TomlDateTime dt:
                         obj["type"] = "datetime";
                         obj["value"] = dt.Value.ToString("O", CultureInfo.InvariantCulture);
                         break;
                     case TomlBoolean b:
-                        obj["type"] = "boolean";
+                        obj["type"] = "bool";
                         obj["value"] = b.Value.ToString(CultureInfo.InvariantCulture).ToLowerInvariant();
                         break;
                     case TomlArray arr:

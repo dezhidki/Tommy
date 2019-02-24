@@ -41,7 +41,7 @@ namespace Tommy
                 Value = value
             };
 
-        public static implicit operator TomlNode(int value) =>
+        public static implicit operator TomlNode(long value) =>
             new TomlInteger
             {
                 Value = value
@@ -99,7 +99,7 @@ namespace Tommy
             set { }
         }
 
-        public int Value { get; set; }
+        public long Value { get; set; }
     }
 
     public class TomlFloat : TomlNode
@@ -645,7 +645,7 @@ namespace Tommy
                 return float.NegativeInfinity;
 
             if (IntegerPattern.IsMatch(value))
-                return int.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+                return long.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
 
             if (FloatPattern.IsMatch(value))
                 return float.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
@@ -654,7 +654,7 @@ namespace Tommy
             if (match.Success)
             {
                 var numBase = bases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
-                return Convert.ToInt32(value.Substring(2).Replace("_", ""), numBase);
+                return Convert.ToInt64(value.Substring(2).Replace("_", ""), numBase);
             }
 
             value = value.Replace("T", " ");
