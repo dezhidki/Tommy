@@ -9,6 +9,87 @@ namespace TommyTests
     public class ParseTests
     {
         [TestMethod]
+        public void TestArrayTableParse()
+        {
+            string input = @"
+            # Test array tables
+
+            [[test]]
+            foo = 'Hello'
+            bar = 'World'
+
+            [[test]]
+            foo = 'Foo'
+            bar = 'Bar'
+
+            [[nested-keys]]
+            foo = 'Foo'
+            bar = 'Bar'
+
+                [[nested-keys.inside]]
+                insider = 'wew'
+
+                [[nested-keys.inside]]
+                insider = 'wew2'
+
+            [[nested-keys]]
+            foo = 'Foo2'
+            bar = 'Bar2'
+
+                [[nested-keys.inside]]
+                insider = 'wew2'
+            ";
+
+            var expectedNode = new TomlNode
+            {
+                    ["test"] = new TomlNode[]
+                    {
+                            new TomlTable
+                            {
+                                    ["foo"] = "Hello",
+                                    ["bar"] = "World"
+                            },
+                            new TomlTable
+                            {
+                                    ["foo"] = "Foo",
+                                    ["bar"] = "Bar"
+                            }
+                    },
+                    ["nested-keys"] = new TomlNode[]
+                    {
+                            new TomlTable
+                            {
+                                    ["foo"] = "Foo",
+                                    ["bar"] = "Bar",
+                                    ["inside"] = new TomlNode[]
+                                    {
+                                            new TomlTable
+                                            {
+                                                    ["insider"] = "wew"
+                                            },
+                                            new TomlTable
+                                            {
+                                                    ["insider"] = "wew2"
+                                            }
+                                    }
+                            },
+                            new TomlTable
+                            {
+                                    ["foo"] = "Foo2",
+                                    ["bar"] = "Bar2",
+                                    ["inside"] = new TomlNode[]
+                                    {
+                                            new TomlTable
+                                            {
+                                                    ["insider"] = "wew2"
+                                            }
+                                    }
+                            }
+                    }
+            };
+        }
+
+        [TestMethod]
         public void TestInlineTableParse()
         {
             string input = @"
