@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Tommy
 {
@@ -174,16 +176,6 @@ namespace Tommy
         public override bool IsTable { get; } = true;
     }
 
-    public enum TomlValueType
-    {
-        None,
-        Integer,
-        Float,
-        Boolean,
-        String,
-        DateTime
-    }
-
     #endregion
 
     public static class TOML
@@ -314,14 +306,14 @@ namespace Tommy
 
         private static string ReadRawValue(TextReader reader)
         {
-            StringBuilder result = new StringBuilder();
+            var result = new StringBuilder();
 
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
-                if (c == COMMENT_SYMBOL || IsNewLine(c))
+                if (c == COMMENT_SYMBOL || IsNewLine(c) || c == ITEM_SEPARATOR)
                     break;
 
                 result.Append(c);
@@ -333,70 +325,65 @@ namespace Tommy
             return result.ToString().Trim();
         }
 
-        private static TomlNode ReadValue(TextReader reader)
+        private static TomlNode ReadTomlValue(TextReader reader)
         {
-            StringBuilder buffer = new StringBuilder();
-            TomlValueType type = TomlValueType.None;
+            var value = ReadRawValue(reader);
 
-            bool isNumber = false;
-            bool firstNumberZero = false;
-            bool isFirstNumber = true;
-            bool hasExponent = false;
-            char numberSign = '\0';
-            char exponentSign = '\0';
+            if (value == "false" || value == "true")
+                return bool.Parse(value);
 
-            int cur;
-            while ((cur = reader.Peek()) >= 0)
+            if (value == "nan" || value == "+nan" || value == "-nan")
+                return float.NaN;
+
+            if (value == "inf" || value == "+inf")
+                return float.PositiveInfinity;
+
+            if (value == "-inf")
+                return float.NegativeInfinity;
+
+            if (IntegerPattern.IsMatch(value))
+                return int.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+
+            if (FloatPattern.IsMatch(value))
+                return float.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+
+            var match = BasedIntegerPattern.Match(value);
+            if (match.Success)
             {
-                char c = (char) cur;
-
-                if(type == TomlValueType.None && IsWhiteSpace(c))
-                    continue;
-
-                // Obviously it's a boolean, try to parse
-                if (c == 'f' || c == 't')
-                {
-                    if(type != TomlValueType.None || isNumber)
-                        throw new Exception("Unrecognized value!");
-
-                    if (!bool.TryParse(ReadRawValue(reader), out var result))
-                        throw new Exception("Encountered invalid value!");
-                    return result;
-                }
-
-                if (c == '+' || c == '-')
-                {
-                    if(type == TomlValueType.Float && exponentSign != '\0')
-                        throw new Exception("Exponent sign has already been defined!");
-                    if (type == TomlValueType.Float)
-                        exponentSign = c;
-                    if (numberSign == '\0')
-                        numberSign = c;
-                    isNumber = true;
-
-                    buffer.Append(c);
-                    continue;
-                }
-
-                if (IsNumber(c))
-                {
-                    if (c == '0')
-                    {
-                        if (isFirstNumber)
-                            firstNumberZero = true;
-                        isFirstNumber = false;
-                        buffer.Append(c);
-                        continue;
-                    }
-                    isFirstNumber = false;
-                }
-
-                
-                if(firstNumberZero)
-                    throw new Exception("Encountered invalid value!");
+                var numBase = bases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
+                return Convert.ToInt32(value.Substring(2).Replace("_", ""), numBase);
             }
 
-            return null;
+            value = value.Replace("T", " ");
+            if (DateTime.TryParseExact(value,
+                                       RFC3339Formats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out var dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       RFC3339LocalDateTimeFormats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       LocalDateFormat,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       RFC3339LocalTimeFormats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            throw new Exception("Invalid value!");
         }
 
         /// <summary>
@@ -559,6 +546,65 @@ namespace Tommy
 
         #endregion
 
+        #region Type Patterns
+
+        private static readonly Regex IntegerPattern =
+            new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
+
+        private static readonly Regex BasedIntegerPattern =
+            new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex FloatPattern =
+            new Regex(@"^(\+|-)?(?!_)(_?\d)+(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
+                      RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Dictionary<string, int> bases = new Dictionary<string, int>
+        {
+            ["x"] = 16,
+            ["o"] = 8,
+            ["b"] = 2
+        };
+
+        private static readonly string[] RFC3339Formats =
+        {
+            "yyyy-MM-dd HH:mm:ssK",
+            "yyyy-MM-dd HH:mm:ss.fK",
+            "yyyy-MM-dd HH:mm:ss.ffK",
+            "yyyy-MM-dd HH:mm:ss.fffK",
+            "yyyy-MM-dd HH:mm:ss.ffffK",
+            "yyyy-MM-dd HH:mm:ss.fffffK",
+            "yyyy-MM-dd HH:mm:ss.ffffffK",
+            "yyyy-MM-dd HH:mm:ss.fffffffK"
+        };
+
+        private static readonly string[] RFC3339LocalDateTimeFormats =
+        {
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss.f",
+            "yyyy-MM-dd HH:mm:ss.ff",
+            "yyyy-MM-dd HH:mm:ss.fff",
+            "yyyy-MM-dd HH:mm:ss.ffff",
+            "yyyy-MM-dd HH:mm:ss.fffff",
+            "yyyy-MM-dd HH:mm:ss.ffffff",
+            "yyyy-MM-dd HH:mm:ss.fffffff"
+        };
+
+        private static readonly string LocalDateFormat = "yyyy-MM-dd";
+
+        private static readonly string[] RFC3339LocalTimeFormats =
+        {
+            "HH:mm:ss",
+            "HH:mm:ss.f",
+            "HH:mm:ss.ff",
+            "HH:mm:ss.fff",
+            "HH:mm:ss.ffff",
+            "HH:mm:ss.fffff",
+            "HH:mm:ss.ffffff",
+            "HH:mm:ss.fffffff"
+        };
+
+        #endregion
+
         #region Key-Value pair parsing
 
         /// <summary>
@@ -636,6 +682,20 @@ namespace Tommy
                     continue;
                 }
 
+                if (c == COMMENT_SYMBOL)
+                    throw new Exception("No value found!");
+
+                if (IsNewLine(c))
+                {
+                    if (skipNewlines)
+                    {
+                        reader.Read();
+                        continue;
+                    }
+
+                    throw new Exception("Encountered a newline when expecting a value!");
+                }
+
                 if (IsQuoted(c))
                 {
                     var value = IsTripleQuote(c, reader, out var excess)
@@ -654,13 +714,7 @@ namespace Tommy
                 if (c == ARRAY_START_SYMBOL)
                     return ReadArray(reader);
 
-                // TODO: Numbers, Dates, Booleans, Lists, Inline Tables
-
-                if (c == COMMENT_SYMBOL)
-                    throw new Exception("No value found!");
-
-                if (IsNewLine(c) && !skipNewlines)
-                    throw new Exception("Encountered a newline when expecting a value!");
+                return ReadTomlValue(reader);
             }
 
             return null;
