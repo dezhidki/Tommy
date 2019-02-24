@@ -164,8 +164,12 @@ namespace Tommy
                     if (c == TABLE_END_SYMBOL)
                     {
                         if (arrayTable)
+                        {
                             if (reader.Peek() < 0 || (char) reader.Peek() != TABLE_END_SYMBOL)
                                 throw new Exception("The array table is not closed!");
+                            // Consume the extra closing table symbol
+                            reader.Read();
+                        }
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
                         keyParts.Clear();
@@ -797,20 +801,25 @@ namespace Tommy
                 string subkey = path[index];
                 if (latestNode.Children.TryGetValue(subkey, out var node))
                 {
+                    if (node.IsArray && arrayTable)
+                    {
+                        var arr = (TomlArray) node;
+
+                        if (index == path.Count - 1)
+                        {
+                            latestNode = new TomlTable();
+                            arr.Add(latestNode);
+                            break;
+                        }
+                        latestNode = arr[arr.Values.Count - 1];
+                        continue;
+                    }
+
                     if (node.HasValue)
                         throw new Exception("The key has a value assigned to it!");
 
                     if (index == path.Count - 1)
-                    {
-                        if (!arrayTable)
-                            throw new Exception("The table has been already defined previously!");
-                        if (!node.IsArray)
-                            throw new Exception("The node is not an array!");
-
-                        latestNode = new TomlTable();
-                        ((TomlArray) node).Add(latestNode);
-                        break;
-                    }
+                        throw new Exception("The table has been already defined previously!");
                 }
                 else
                 {

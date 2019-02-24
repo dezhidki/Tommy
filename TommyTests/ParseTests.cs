@@ -87,6 +87,9 @@ namespace TommyTests
                             }
                     }
             };
+
+            using (var sr = new StringReader(input))
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
         }
 
         [TestMethod]
