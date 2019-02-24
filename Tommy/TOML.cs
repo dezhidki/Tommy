@@ -15,6 +15,11 @@ namespace Tommy
         public virtual bool HasValue { get; } = false;
         public virtual bool IsArray { get; } = false;
         public virtual bool IsTable { get; } = false;
+        public virtual bool IsString { get; } = false;
+        public virtual bool IsInteger { get; } = false;
+        public virtual bool IsFloat { get; } = false;
+        public virtual bool IsDateTime { get; } = false;
+        public virtual bool IsBoolean { get; } = false;
 
         public virtual TomlNode this[string key]
         {
@@ -22,11 +27,41 @@ namespace Tommy
             set => Children[key] = value;
         }
 
-        public static implicit operator TomlNode(string str) =>
-                new TomlString
-                {
-                        RawValue = str
-                };
+        public static implicit operator TomlNode(string value) =>
+            new TomlString
+            {
+                Value = value
+            };
+
+        public static implicit operator TomlNode(bool value) =>
+            new TomlBoolean
+            {
+                Value = value
+            };
+
+        public static implicit operator TomlNode(int value) =>
+            new TomlInteger
+            {
+                Value = value
+            };
+
+        public static implicit operator TomlNode(float value) =>
+            new TomlFloat
+            {
+                Value = value
+            };
+
+        public static implicit operator TomlNode(double value) =>
+            new TomlFloat
+            {
+                Value = value
+            };
+
+        public static implicit operator TomlNode(DateTime value) =>
+            new TomlDateTime
+            {
+                Value = value
+            };
 
         public static implicit operator TomlNode(TomlNode[] nodes)
         {
@@ -39,6 +74,7 @@ namespace Tommy
     public class TomlString : TomlNode
     {
         public override bool HasValue { get; } = true;
+        public override bool IsString { get; } = true;
 
         public override TomlNode this[string key]
         {
@@ -46,7 +82,64 @@ namespace Tommy
             set { }
         }
 
-        public string RawValue { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class TomlInteger : TomlNode
+    {
+        public override bool IsInteger { get; } = true;
+
+        public override bool HasValue { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
+        }
+
+        public int Value { get; set; }
+    }
+
+    public class TomlFloat : TomlNode
+    {
+        public override bool IsFloat { get; } = true;
+        public override bool HasValue { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
+        }
+
+        public double Value { get; set; }
+    }
+
+    public class TomlBoolean : TomlNode
+    {
+        public override bool IsBoolean { get; } = true;
+        public override bool HasValue { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
+        }
+
+        public bool Value { get; set; }
+    }
+
+    public class TomlDateTime : TomlNode
+    {
+        public override bool IsDateTime { get; } = true;
+        public override bool HasValue { get; } = true;
+
+        public override TomlNode this[string key]
+        {
+            get => null;
+            set { }
+        }
+
+        public DateTime Value { get; set; }
     }
 
     public class TomlArray : TomlNode
@@ -81,6 +174,16 @@ namespace Tommy
         public override bool IsTable { get; } = true;
     }
 
+    public enum TomlValueType
+    {
+        None,
+        Integer,
+        Float,
+        Boolean,
+        String,
+        DateTime
+    }
+
     #endregion
 
     public static class TOML
@@ -95,13 +198,13 @@ namespace Tommy
 
             var keyParts = new List<string>();
 
-            bool insideArrayTable = false;
-            bool arrayTable = false;
+            var insideArrayTable = false;
+            var arrayTable = false;
 
             int currentChar;
             while ((currentChar = reader.Peek()) >= 0)
             {
-                char c = (char) currentChar;
+                var c = (char) currentChar;
 
                 if (state == ParseState.None)
                 {
@@ -209,6 +312,93 @@ namespace Tommy
             return rootNode;
         }
 
+        private static string ReadRawValue(TextReader reader)
+        {
+            StringBuilder result = new StringBuilder();
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                char c = (char) cur;
+
+                if (c == COMMENT_SYMBOL || IsNewLine(c))
+                    break;
+
+                result.Append(c);
+
+                reader.Read();
+            }
+
+            // TODO: Replace trim with space counting
+            return result.ToString().Trim();
+        }
+
+        private static TomlNode ReadValue(TextReader reader)
+        {
+            StringBuilder buffer = new StringBuilder();
+            TomlValueType type = TomlValueType.None;
+
+            bool isNumber = false;
+            bool firstNumberZero = false;
+            bool isFirstNumber = true;
+            bool hasExponent = false;
+            char numberSign = '\0';
+            char exponentSign = '\0';
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                char c = (char) cur;
+
+                if(type == TomlValueType.None && IsWhiteSpace(c))
+                    continue;
+
+                // Obviously it's a boolean, try to parse
+                if (c == 'f' || c == 't')
+                {
+                    if(type != TomlValueType.None || isNumber)
+                        throw new Exception("Unrecognized value!");
+
+                    if (!bool.TryParse(ReadRawValue(reader), out var result))
+                        throw new Exception("Encountered invalid value!");
+                    return result;
+                }
+
+                if (c == '+' || c == '-')
+                {
+                    if(type == TomlValueType.Float && exponentSign != '\0')
+                        throw new Exception("Exponent sign has already been defined!");
+                    if (type == TomlValueType.Float)
+                        exponentSign = c;
+                    if (numberSign == '\0')
+                        numberSign = c;
+                    isNumber = true;
+
+                    buffer.Append(c);
+                    continue;
+                }
+
+                if (IsNumber(c))
+                {
+                    if (c == '0')
+                    {
+                        if (isFirstNumber)
+                            firstNumberZero = true;
+                        isFirstNumber = false;
+                        buffer.Append(c);
+                        continue;
+                    }
+                    isFirstNumber = false;
+                }
+
+                
+                if(firstNumberZero)
+                    throw new Exception("Encountered invalid value!");
+            }
+
+            return null;
+        }
+
         /// <summary>
         ///     Reads the array.
         /// </summary>
@@ -234,7 +424,7 @@ namespace Tommy
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 if (c == ARRAY_END_SYMBOL)
                 {
@@ -287,7 +477,7 @@ namespace Tommy
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 if (c == INLINE_TABLE_END_SYMBOL)
                 {
@@ -363,7 +553,9 @@ namespace Tommy
         private static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
 
         private static bool IsBareKey(char c) =>
-                'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
+            'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
+
+        private static bool IsNumber(char c) => '0' <= c && c <= '9';
 
         #endregion
 
@@ -388,7 +580,7 @@ namespace Tommy
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 if (IsQuoted(c) || IsBareKey(c))
                 {
@@ -436,7 +628,7 @@ namespace Tommy
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 if (IsWhiteSpace(c))
                 {
@@ -446,13 +638,13 @@ namespace Tommy
 
                 if (IsQuoted(c))
                 {
-                    string value = IsTripleQuote(c, reader, out char excess)
-                                           ? ReadQuotedValueMultiLine(c, reader)
-                                           : ReadQuotedValueSingleLine(c, reader, excess);
+                    var value = IsTripleQuote(c, reader, out var excess)
+                        ? ReadQuotedValueMultiLine(c, reader)
+                        : ReadQuotedValueSingleLine(c, reader, excess);
 
                     return new TomlString
                     {
-                            RawValue = value
+                        Value = value
                     };
                 }
 
@@ -489,14 +681,17 @@ namespace Tommy
         /// <param name="parts"></param>
         /// <param name="until"></param>
         /// <param name="skipWhitespace"></param>
-        private static void ReadKeyName(TextReader reader, ref List<string> parts, char until, bool skipWhitespace = false)
+        private static void ReadKeyName(TextReader reader,
+                                        ref List<string> parts,
+                                        char until,
+                                        bool skipWhitespace = false)
         {
             var buffer = new StringBuilder();
-            bool quoted = false;
+            var quoted = false;
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 // Reached the final character
                 if (c == until)
@@ -606,7 +801,12 @@ namespace Tommy
             return true;
         }
 
-        private static bool ProcessQuotedValueCharacter(char quote, bool isBasic, char c, int next, StringBuilder sb, ref bool escaped)
+        private static bool ProcessQuotedValueCharacter(char quote,
+                                                        bool isBasic,
+                                                        char c,
+                                                        int next,
+                                                        StringBuilder sb,
+                                                        ref bool escaped)
         {
             if (escaped)
             {
@@ -646,18 +846,19 @@ namespace Tommy
         /// <returns></returns>
         private static string ReadQuotedValueSingleLine(char quote, TextReader reader, char initialData = '\0')
         {
-            bool isBasic = quote == BASIC_STRING_SYMBOL;
+            var isBasic = quote == BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
 
-            bool escaped = false;
+            var escaped = false;
 
-            if (initialData != '\0' && ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
+            if (initialData != '\0' &&
+                ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
                 return isBasic ? sb.ToString().Unescape() : sb.ToString();
 
             int cur;
             while ((cur = reader.Read()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
                 if (ProcessQuotedValueCharacter(quote, isBasic, c, reader.Peek(), sb, ref escaped))
                     break;
             }
@@ -681,18 +882,18 @@ namespace Tommy
         /// <returns></returns>
         private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
         {
-            bool isBasic = quote == BASIC_STRING_SYMBOL;
+            var isBasic = quote == BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
 
-            bool escaped = false;
-            bool skipWhitespace = false;
-            int quotesEncountered = 0;
-            bool first = true;
+            var escaped = false;
+            var skipWhitespace = false;
+            var quotesEncountered = 0;
+            var first = true;
 
             int cur;
             while ((cur = reader.Read()) >= 0)
             {
-                char c = (char) cur;
+                var c = (char) cur;
 
                 // Trim the first newline
                 if (first && IsNewLine(c))
@@ -723,7 +924,7 @@ namespace Tommy
                 // If we encounter an escape sequence...
                 if (isBasic && c == ESCAPE_SYMBOL)
                 {
-                    int next = reader.Peek();
+                    var next = reader.Peek();
                     if (next >= 0)
                     {
                         // ...and the next char is empty space, we must skip all whitespaces
@@ -767,9 +968,9 @@ namespace Tommy
             var latestNode = root;
 
             if (path.Count > 1)
-                for (int index = 0; index < path.Count - 1; index++)
+                for (var index = 0; index < path.Count - 1; index++)
                 {
-                    string subkey = path[index];
+                    var subkey = path[index];
                     if (latestNode.Children.TryGetValue(subkey, out var currentNode))
                     {
                         if (currentNode.HasValue)
@@ -796,9 +997,9 @@ namespace Tommy
 
             var latestNode = root;
 
-            for (int index = 0; index < path.Count; index++)
+            for (var index = 0; index < path.Count; index++)
             {
-                string subkey = path[index];
+                var subkey = path[index];
                 if (latestNode.Children.TryGetValue(subkey, out var node))
                 {
                     if (node.IsArray && arrayTable)
@@ -811,6 +1012,7 @@ namespace Tommy
                             arr.Add(latestNode);
                             break;
                         }
+
                         latestNode = arr[arr.Values.Count - 1];
                         continue;
                     }
@@ -855,15 +1057,15 @@ namespace Tommy
             if (string.IsNullOrEmpty(txt))
                 return txt;
             var stringBuilder = new StringBuilder(txt.Length);
-            for (int i = 0; i < txt.Length;)
+            for (var i = 0; i < txt.Length;)
             {
-                int num = txt.IndexOf('\\', i);
+                var num = txt.IndexOf('\\', i);
                 if (num < 0 || num == txt.Length - 1)
                     num = txt.Length;
                 stringBuilder.Append(txt, i, num - i);
                 if (num >= txt.Length)
                     break;
-                char c = txt[num + 1];
+                var c = txt[num + 1];
                 switch (c)
                 {
                     case 'b':
