@@ -304,206 +304,6 @@ namespace Tommy
             return rootNode;
         }
 
-        private static string ReadRawValue(TextReader reader)
-        {
-            var result = new StringBuilder();
-
-            int cur;
-            while ((cur = reader.Peek()) >= 0)
-            {
-                var c = (char) cur;
-
-                if (c == COMMENT_SYMBOL || IsNewLine(c) || c == ITEM_SEPARATOR)
-                    break;
-
-                result.Append(c);
-
-                reader.Read();
-            }
-
-            // TODO: Replace trim with space counting
-            return result.ToString().Trim();
-        }
-
-        private static TomlNode ReadTomlValue(TextReader reader)
-        {
-            var value = ReadRawValue(reader);
-
-            if (value == "false" || value == "true")
-                return bool.Parse(value);
-
-            if (value == "nan" || value == "+nan" || value == "-nan")
-                return float.NaN;
-
-            if (value == "inf" || value == "+inf")
-                return float.PositiveInfinity;
-
-            if (value == "-inf")
-                return float.NegativeInfinity;
-
-            if (IntegerPattern.IsMatch(value))
-                return int.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
-
-            if (FloatPattern.IsMatch(value))
-                return float.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
-
-            var match = BasedIntegerPattern.Match(value);
-            if (match.Success)
-            {
-                var numBase = bases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
-                return Convert.ToInt32(value.Substring(2).Replace("_", ""), numBase);
-            }
-
-            value = value.Replace("T", " ");
-            if (DateTime.TryParseExact(value,
-                                       RFC3339Formats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out var dateTimeResult))
-                return dateTimeResult;
-
-            if (DateTime.TryParseExact(value,
-                                       RFC3339LocalDateTimeFormats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out dateTimeResult))
-                return dateTimeResult;
-
-            if (DateTime.TryParseExact(value,
-                                       LocalDateFormat,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out dateTimeResult))
-                return dateTimeResult;
-
-            if (DateTime.TryParseExact(value,
-                                       RFC3339LocalTimeFormats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out dateTimeResult))
-                return dateTimeResult;
-
-            throw new Exception("Invalid value!");
-        }
-
-        /// <summary>
-        ///     Reads the array.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the start of the array:
-        ///     ["a", "b"]
-        ///     ^
-        ///     Consumes all characters until the end of the array:
-        ///     ["a", "b"]
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <returns></returns>
-        private static TomlArray ReadArray(TextReader reader)
-        {
-            // Consume the start of array character
-            reader.Read();
-
-            var result = new TomlArray();
-
-            TomlNode currentValue = null;
-
-            int cur;
-            while ((cur = reader.Peek()) >= 0)
-            {
-                var c = (char) cur;
-
-                if (c == ARRAY_END_SYMBOL)
-                {
-                    reader.Read();
-                    break;
-                }
-
-                if (c == COMMENT_SYMBOL)
-                {
-                    reader.ReadLine();
-                    continue;
-                }
-
-                if (IsWhiteSpace(c) || IsNewLine(c))
-                    goto consume_character;
-
-                if (c == ITEM_SEPARATOR)
-                {
-                    if (currentValue == null)
-                        throw new Exception("Encountered multiple value separators!");
-
-                    result.Add(currentValue);
-                    currentValue = null;
-                    goto consume_character;
-                }
-
-                currentValue = ReadValue(reader, true);
-                continue;
-
-                consume_character:
-                reader.Read();
-            }
-
-            if (currentValue != null)
-                result.Add(currentValue);
-
-            return result;
-        }
-
-        private static TomlNode ReadInlineTable(TextReader reader)
-        {
-            reader.Read();
-
-            var result = new TomlTable();
-
-            TomlNode currentValue = null;
-
-            var keyParts = new List<string>();
-
-            int cur;
-            while ((cur = reader.Peek()) >= 0)
-            {
-                var c = (char) cur;
-
-                if (c == INLINE_TABLE_END_SYMBOL)
-                {
-                    reader.Read();
-                    break;
-                }
-
-                if (c == COMMENT_SYMBOL)
-                    throw new Exception("Incomplete inline table definition");
-
-                if (IsNewLine(c))
-                    throw new Exception("Inline tables are only allowed to be on single line");
-
-                if (IsWhiteSpace(c))
-                    goto consume_character;
-
-                if (c == ITEM_SEPARATOR)
-                {
-                    if (currentValue == null)
-                        throw new Exception("Encountered multiple value separators!");
-
-                    InsertNode(currentValue, result, keyParts);
-                    keyParts.Clear();
-                    currentValue = null;
-                    goto consume_character;
-                }
-
-                currentValue = ReadKeyValuePair(reader, keyParts);
-                continue;
-
-                consume_character:
-                reader.Read();
-            }
-
-            if (currentValue != null)
-                InsertNode(currentValue, result, keyParts);
-
-            return result;
-        }
 
         private enum ParseState
         {
@@ -798,6 +598,211 @@ namespace Tommy
                 throw new Exception("Encountered extra . in key definition!");
 
             parts.Add(buffer.ToString());
+        }
+
+        #endregion
+
+        #region Non-string value parsing
+
+        private static string ReadRawValue(TextReader reader)
+        {
+            var result = new StringBuilder();
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                var c = (char) cur;
+
+                if (c == COMMENT_SYMBOL || IsNewLine(c) || c == ITEM_SEPARATOR)
+                    break;
+
+                result.Append(c);
+
+                reader.Read();
+            }
+
+            // TODO: Replace trim with space counting
+            return result.ToString().Trim();
+        }
+
+        private static TomlNode ReadTomlValue(TextReader reader)
+        {
+            var value = ReadRawValue(reader);
+
+            if (value == "false" || value == "true")
+                return bool.Parse(value);
+
+            if (value == "nan" || value == "+nan" || value == "-nan")
+                return float.NaN;
+
+            if (value == "inf" || value == "+inf")
+                return float.PositiveInfinity;
+
+            if (value == "-inf")
+                return float.NegativeInfinity;
+
+            if (IntegerPattern.IsMatch(value))
+                return int.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+
+            if (FloatPattern.IsMatch(value))
+                return float.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+
+            var match = BasedIntegerPattern.Match(value);
+            if (match.Success)
+            {
+                var numBase = bases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
+                return Convert.ToInt32(value.Substring(2).Replace("_", ""), numBase);
+            }
+
+            value = value.Replace("T", " ");
+            if (DateTime.TryParseExact(value,
+                                       RFC3339Formats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out var dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       RFC3339LocalDateTimeFormats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       LocalDateFormat,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            if (DateTime.TryParseExact(value,
+                                       RFC3339LocalTimeFormats,
+                                       CultureInfo.InvariantCulture,
+                                       DateTimeStyles.AssumeLocal,
+                                       out dateTimeResult))
+                return dateTimeResult;
+
+            throw new Exception("Invalid value!");
+        }
+
+        /// <summary>
+        ///     Reads the array.
+        /// </summary>
+        /// <remarks>
+        ///     Assumes the cursor is at the start of the array:
+        ///     ["a", "b"]
+        ///     ^
+        ///     Consumes all characters until the end of the array:
+        ///     ["a", "b"]
+        ///     ^
+        /// </remarks>
+        /// <param name="reader"></param>
+        /// <returns></returns>
+        private static TomlArray ReadArray(TextReader reader)
+        {
+            // Consume the start of array character
+            reader.Read();
+
+            var result = new TomlArray();
+
+            TomlNode currentValue = null;
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                var c = (char) cur;
+
+                if (c == ARRAY_END_SYMBOL)
+                {
+                    reader.Read();
+                    break;
+                }
+
+                if (c == COMMENT_SYMBOL)
+                {
+                    reader.ReadLine();
+                    continue;
+                }
+
+                if (IsWhiteSpace(c) || IsNewLine(c))
+                    goto consume_character;
+
+                if (c == ITEM_SEPARATOR)
+                {
+                    if (currentValue == null)
+                        throw new Exception("Encountered multiple value separators!");
+
+                    result.Add(currentValue);
+                    currentValue = null;
+                    goto consume_character;
+                }
+
+                currentValue = ReadValue(reader, true);
+                continue;
+
+                consume_character:
+                reader.Read();
+            }
+
+            if (currentValue != null)
+                result.Add(currentValue);
+
+            return result;
+        }
+
+        private static TomlNode ReadInlineTable(TextReader reader)
+        {
+            reader.Read();
+
+            var result = new TomlTable();
+
+            TomlNode currentValue = null;
+
+            var keyParts = new List<string>();
+
+            int cur;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                var c = (char) cur;
+
+                if (c == INLINE_TABLE_END_SYMBOL)
+                {
+                    reader.Read();
+                    break;
+                }
+
+                if (c == COMMENT_SYMBOL)
+                    throw new Exception("Incomplete inline table definition");
+
+                if (IsNewLine(c))
+                    throw new Exception("Inline tables are only allowed to be on single line");
+
+                if (IsWhiteSpace(c))
+                    goto consume_character;
+
+                if (c == ITEM_SEPARATOR)
+                {
+                    if (currentValue == null)
+                        throw new Exception("Encountered multiple value separators!");
+
+                    InsertNode(currentValue, result, keyParts);
+                    keyParts.Clear();
+                    currentValue = null;
+                    goto consume_character;
+                }
+
+                currentValue = ReadKeyValuePair(reader, keyParts);
+                continue;
+
+                consume_character:
+                reader.Read();
+            }
+
+            if (currentValue != null)
+                InsertNode(currentValue, result, keyParts);
+
+            return result;
         }
 
         #endregion
