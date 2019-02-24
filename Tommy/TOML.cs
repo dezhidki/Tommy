@@ -301,6 +301,9 @@ namespace Tommy
                 reader.Read();
             }
 
+            if(state != ParseState.None)
+                throw new Exception("Unexpected end of file!");
+
             return rootNode;
         }
 
@@ -355,7 +358,7 @@ namespace Tommy
             new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex FloatPattern =
-            new Regex(@"^(\+|-)?(?!_)(_?\d)+(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
+            new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
                       RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Dictionary<string, int> bases = new Dictionary<string, int>
@@ -739,6 +742,10 @@ namespace Tommy
                 }
 
                 currentValue = ReadValue(reader, true);
+
+                if (result.Values.Count != 0 && result[0].GetType() != currentValue.GetType())
+                    throw new Exception("Arrays cannot have mixed types!");
+
                 continue;
 
                 consume_character:
@@ -1045,6 +1052,9 @@ namespace Tommy
 
                     latestNode = currentNode;
                 }
+
+            if(latestNode.Children.ContainsKey(path[path.Count - 1]))
+                throw new Exception("The same key is already defined!");
 
             latestNode[path[path.Count - 1]] = node;
         }
