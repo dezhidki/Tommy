@@ -825,19 +825,19 @@ namespace Tommy
                 return bool.Parse(value);
 
             if (value == "nan" || value == "+nan" || value == "-nan")
-                return float.NaN;
+                return double.NaN;
 
             if (value == "inf" || value == "+inf")
-                return float.PositiveInfinity;
+                return double.PositiveInfinity;
 
             if (value == "-inf")
-                return float.NegativeInfinity;
+                return double.NegativeInfinity;
 
             if (IntegerPattern.IsMatch(value))
                 return long.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
 
             if (FloatPattern.IsMatch(value))
-                return float.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
+                return double.Parse(value.Replace("_", ""), CultureInfo.InvariantCulture);
 
             var match = BasedIntegerPattern.Match(value);
             if (match.Success)
