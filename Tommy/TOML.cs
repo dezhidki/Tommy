@@ -261,7 +261,7 @@ namespace Tommy
         public override void Delete(string key) => RawTable.Remove(key);
     }
 
-    class TomlLazy : TomlNode
+    internal class TomlLazy : TomlNode
     {
         private readonly TomlNode parent;
         private TomlNode replacement;
@@ -451,7 +451,6 @@ namespace Tommy
             return rootNode;
         }
 
-
         private enum ParseState
         {
             None,
@@ -495,24 +494,39 @@ namespace Tommy
 
         #region Type Patterns
 
+        /**
+         * A pattern to verify the integer value according to the TOML specification.
+         */
         private static readonly Regex IntegerPattern =
             new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
 
+        /**
+         * A pattern to verify a special 0x, 0o and 0b forms of an integer according to the TOML specification.
+         */
         private static readonly Regex BasedIntegerPattern =
             new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        /**
+         * A pattern to verify the float value according to the TOML specification.
+         */
         private static readonly Regex FloatPattern =
             new
                 Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
                       RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Dictionary<string, int> bases = new Dictionary<string, int>
+        /**
+         * A helper dictionary to map TOML base codes into the radii.
+         */
+        private static readonly Dictionary<string, int> IntegerBases = new Dictionary<string, int>
         {
             ["x"] = 16,
             ["o"] = 8,
             ["b"] = 2
         };
 
+        /**
+         *  Valid date formats with timezone as per RFC3339.
+         */
         private static readonly string[] RFC3339Formats =
         {
             "yyyy-MM-dd HH:mm:ssK",
@@ -525,6 +539,9 @@ namespace Tommy
             "yyyy-MM-dd HH:mm:ss.fffffffK"
         };
 
+        /**
+         *  Valid date formats without timezone (assumes local) as per RFC3339.
+         */
         private static readonly string[] RFC3339LocalDateTimeFormats =
         {
             "yyyy-MM-dd HH:mm:ss",
@@ -537,8 +554,14 @@ namespace Tommy
             "yyyy-MM-dd HH:mm:ss.fffffff"
         };
 
+        /**
+         *  Valid full date format as per TOML spec.
+         */
         private static readonly string LocalDateFormat = "yyyy-MM-dd";
 
+        /**
+        *  Valid time formats as per TOML spec.
+        */
         private static readonly string[] RFC3339LocalTimeFormats =
         {
             "HH:mm:ss",
@@ -555,6 +578,15 @@ namespace Tommy
 
         #region Key-Value pair parsing
 
+        /**
+         * Reads a single key-value pair.
+         * Assumes the cursor is at the first character that belong to the pair (including possible whitespace).
+         * Consumes all characters that belong to the key and the value (ignoring possible trailing whitespace at the end).
+         *
+         * Example:
+         * foo = "bar"  ==> foo = "bar"
+         * ^                           ^
+         */
         private static TomlNode ReadKeyValuePair(TextReader reader, List<string> keyParts)
         {
             int cur;
@@ -589,6 +621,15 @@ namespace Tommy
             return null;
         }
 
+        /**
+         * Reads a single value.
+         * Assumes the cursor is at the first character that belongs to the value (including possible starting whitespace).
+         * Consumes all characters belonging to the value (ignoring possible trailing whitespace at the end).
+         *
+         * Example:
+         * "test"  ==> "test"
+         * ^                 ^
+         */
         private static TomlNode ReadValue(TextReader reader, bool skipNewlines = false)
         {
             int cur;
@@ -640,6 +681,19 @@ namespace Tommy
             return null;
         }
 
+        /**
+         * Reads a single key name.
+         * Assumes the cursor is at the first character belonging to the key (with possible trailing whitespace if `skipWhitespace = true`).
+         * Consumes all the characters until the `until` character is met (but does not consume the character itself).
+         *
+         * Example 1:
+         * foo.bar  ==>  foo.bar           (`skipWhitespace = false`, `until = ' '`)
+         * ^                    ^
+         *
+         * Example 2:
+         * [ foo . bar ] ==>  [ foo . bar ]     (`skipWhitespace = true`, `until = ']'`)
+         *  ^                             ^        
+         */
         private static void ReadKeyName(TextReader reader,
                                         ref List<string> parts,
                                         char until,
@@ -725,6 +779,14 @@ namespace Tommy
         private static bool IsValueSeparator(char c) =>
             c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
 
+        /**
+         * Reads the whole raw value until the first non-value character is encountered.
+         * Assumes the cursor start position at the first value character and consumes all characters that may be related to the value.
+         * Example:
+         * 
+         * 1_0_0_0  ==>  1_0_0_0
+         * ^                    ^
+         */
         private static string ReadRawValue(TextReader reader)
         {
             var result = new StringBuilder();
@@ -742,10 +804,19 @@ namespace Tommy
                 reader.Read();
             }
 
-            // TODO: Replace trim with space counting
+            // Replace trim with manual space counting?
             return result.ToString().Trim();
         }
 
+        /**
+         * Reads and parses a non-string, non-composite TOML value.
+         * Assumes the cursor at the first character that is related to the value (with possible spaces).
+         * Consumes all the characters that are related to the value.
+         *
+         * Example
+         * 1_0_0_0 # This is a comment <newline>  ==>  1_0_0_0 # This is a comment
+         * ^                                                  ^  
+         */
         private static TomlNode ReadTomlValue(TextReader reader)
         {
             var value = ReadRawValue(reader);
@@ -771,7 +842,7 @@ namespace Tommy
             var match = BasedIntegerPattern.Match(value);
             if (match.Success)
             {
-                var numBase = bases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
+                var numBase = IntegerBases.TryGetValue(match.Groups["base"].Value, out var val) ? val : 10;
                 return Convert.ToInt64(value.Substring(2).Replace("_", ""), numBase);
             }
 
@@ -807,6 +878,14 @@ namespace Tommy
             throw new Exception("Invalid value!");
         }
 
+        /**
+         * Reads an array value.
+         * Assumes the cursor is at the start of the array definition. Reads all character until the array closing bracket.
+         *
+         * Example:
+         * [1, 2, 3]  ==>  [1, 2, 3]
+         * ^                        ^
+         */
         private static TomlArray ReadArray(TextReader reader)
         {
             // Consume the start of array character
@@ -863,6 +942,14 @@ namespace Tommy
             return result;
         }
 
+        /**
+         * Reads an inline table.
+         * Assumes the cursor is at the start of the table definition. Reads all character until the table closing bracket.
+         *
+         * Example:
+         * { test = "foo", value = 1 }  ==>  { test = "foo", value = 1 }
+         * ^                                                            ^
+         */
         private static TomlNode ReadInlineTable(TextReader reader)
         {
             reader.Read();
@@ -921,6 +1008,24 @@ namespace Tommy
 
         #region String parsing
 
+        /**
+         * Checks if the string value a multiline string (i.e. a triple quoted string).
+         * Assumes the cursor is at the first quote character. Consumes the least amount of characters needed to determine if the string is multiline.
+         *
+         * If the result is false, returns the consumed character through the `excess` variable.
+         *
+         * Example 1:
+         * """test"""  ==>  """test"""
+         * ^                   ^
+         *
+         * Example 2:
+         * "test"  ==>  "test"         (doesn't return the first quote)
+         * ^             ^
+         *
+         * Example 3:
+         * ""  ==>  ""        (returns the extra `"` through the `excess` variable)
+         * ^          ^
+         */
         private static bool IsTripleQuote(char quote, TextReader reader, out char excess)
         {
             // Copypasta, but it's faster...
@@ -951,8 +1056,11 @@ namespace Tommy
             return true;
         }
 
+        /**
+         * A convenience method to process a single character within a quote.
+         */
         private static bool ProcessQuotedValueCharacter(char quote,
-                                                        bool isBasic,
+                                                        bool isNonLiteral,
                                                         char c,
                                                         int next,
                                                         StringBuilder sb,
@@ -971,7 +1079,7 @@ namespace Tommy
             if (c == quote)
                 return true;
 
-            if (isBasic && c == ESCAPE_SYMBOL)
+            if (isNonLiteral && c == ESCAPE_SYMBOL)
                 if (next >= 0 && (char) next == quote)
                     escaped = true;
 
@@ -982,28 +1090,46 @@ namespace Tommy
             return false;
         }
 
+        /**
+         * Reads a single-line string.
+         * Assumes the cursor is at the first character that belongs to the string.
+         * Consumes all characters that belong to the string (including the closing quote).
+         *
+         * Example:
+         * "test"  ==>  "test"
+         *  ^                 ^
+         */
         private static string ReadQuotedValueSingleLine(char quote, TextReader reader, char initialData = '\0')
         {
-            var isBasic = quote == BASIC_STRING_SYMBOL;
+            var isNonLiteral = quote == BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
 
             var escaped = false;
 
             if (initialData != '\0' &&
-                ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
-                return isBasic ? sb.ToString().Unescape() : sb.ToString();
+                ProcessQuotedValueCharacter(quote, isNonLiteral, initialData, reader.Peek(), sb, ref escaped))
+                return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
 
             int cur;
             while ((cur = reader.Read()) >= 0)
             {
                 var c = (char) cur;
-                if (ProcessQuotedValueCharacter(quote, isBasic, c, reader.Peek(), sb, ref escaped))
+                if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, reader.Peek(), sb, ref escaped))
                     break;
             }
 
-            return isBasic ? sb.ToString().Unescape() : sb.ToString();
+            return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
         }
 
+        /**
+         * Reads a multiline string.
+         * Assumes the cursor is at the first character that belongs to the string.
+         * Consumes all characters that belong to the string and the three closing quotes.
+         *
+         * Example:
+         * """test"""  ==>  """test"""
+         *    ^                       ^
+         */
         private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
         {
             var isBasic = quote == BASIC_STRING_SYMBOL;
