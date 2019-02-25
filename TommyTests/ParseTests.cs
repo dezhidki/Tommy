@@ -11,13 +11,8 @@ namespace TommyTests
         [TestMethod]
         public void TestFailedValidatorEntries()
         {
-            string input = @"
-            [a.b.c]
-            answer = 42
-
-            [a]
-            better = 43
-            ";
+            string input = @"answer = """"
+";
 
             using (var sr = new StringReader(input))
             {

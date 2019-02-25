@@ -857,16 +857,10 @@ namespace Tommy
             }
 
             // Consume the second quote
-            reader.Read();
+            excess = (char) reader.Read();
 
-            if ((cur = reader.Peek()) < 0)
-                throw new Exception("Unexpected end of file!");
-
-            if ((char) cur != quote)
-            {
-                excess = (char) cur;
+            if ((cur = reader.Peek()) < 0 || (char)cur != quote)
                 return false;
-            }
 
             // Consume the final quote
             reader.Read();
@@ -930,7 +924,7 @@ namespace Tommy
 
             if (initialData != '\0' &&
                 ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
-                return isBasic ? sb.ToString().Unescape() : sb.ToString();
+                    return isBasic ? sb.ToString().Unescape() : sb.ToString();
 
             int cur;
             while ((cur = reader.Read()) >= 0)
