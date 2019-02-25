@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SimpleJSON;
 using Tommy;
 
@@ -20,19 +18,24 @@ namespace TommyDecoder
             {
                 var node = TOML.Parse(sr);
                 var obj = new JSONObject();
-                foreach (var keyValuePair in node.Children)
-                {
-                    var o = new JSONObject();
-                    obj[keyValuePair.Key] = o;
-                    Traverse(o, keyValuePair.Value, keyValuePair.Key);
-                }
-
+                Traverse(obj, node);
                 Console.WriteLine(obj.ToString());
             }
         }
 
-        static void Traverse(JSONNode obj, TomlNode node, string nodeKey = null)
+        static void Traverse(JSONNode obj, TomlNode node)
         {
+            if (obj is JSONArray jsonArr && node is TomlArray tomlArray)
+            {
+                foreach (var tomlArrayValue in tomlArray.Values)
+                {
+                    var newNode = new JSONObject();
+                    jsonArr.Add(newNode);
+                    Traverse(newNode, tomlArrayValue);
+                }
+                return;
+            }
+
             if (node.HasValue)
             {
                 switch (node)
@@ -58,30 +61,47 @@ namespace TommyDecoder
                         obj["value"] = b.Value.ToString(CultureInfo.InvariantCulture).ToLowerInvariant();
                         break;
                     case TomlArray arr:
-                        obj["type"] = "array";
                         var jsonArray = new JSONArray();
+                        obj["type"] = "array";
+                        obj["value"] = jsonArray;
                         foreach (var arrValue in arr.Values)
                         {
                             var o = new JSONObject();
                             jsonArray.Add(o);
                             Traverse(o, arrValue);
                         }
-                        obj["value"] = jsonArray;
                         break;
                 }
                 return;
             }
 
-            if (node is TomlTable tbl)
+            foreach (var keyValuePair in node.Children)
             {
-                var o = new JSONObject();
-                obj[nodeKey] = o;
-                
-                foreach (var keyValuePair in tbl.Children)
-                {
-                    Traverse(o, keyValuePair.Value, keyValuePair.Key);
-                }
+                JSONNode newNode;
+                if (keyValuePair.Value is TomlArray arr && arr.Values.Count > 0 && arr.Values[0] is TomlTable)
+                    newNode = new JSONArray();
+                else
+                    newNode = new JSONObject();
+                obj[keyValuePair.Key] = newNode;
+                Traverse(newNode, keyValuePair.Value);
             }
+
+            //if (node is TomlTable tbl)
+            //{
+            //    JSONNode o;
+            //    if (nodeKey == null)
+            //        o = obj;
+            //    else
+            //    {
+            //        o = new JSONObject();
+            //        obj[nodeKey] = o;
+            //    }
+                
+            //    foreach (var keyValuePair in tbl.Children)
+            //    {
+            //        Traverse(o, keyValuePair.Value, keyValuePair.Key);
+            //    }
+            //}
         }
     }
 }
