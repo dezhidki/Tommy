@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using SimpleJSON;
@@ -8,11 +6,11 @@ using Tommy;
 
 namespace TommyDecoder
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            string input = Console.In.ReadToEnd();
+            var input = Console.In.ReadToEnd();
 
             using (var sr = new StringReader(input))
             {
@@ -23,7 +21,7 @@ namespace TommyDecoder
             }
         }
 
-        static void Traverse(JSONNode obj, TomlNode node)
+        private static void Traverse(JSONNode obj, TomlNode node)
         {
             if (obj is JSONArray jsonArr && node is TomlArray tomlArray)
             {
@@ -33,6 +31,7 @@ namespace TommyDecoder
                     jsonArr.Add(newNode);
                     Traverse(newNode, tomlArrayValue);
                 }
+
                 return;
             }
 
@@ -50,7 +49,7 @@ namespace TommyDecoder
                         break;
                     case TomlFloat f:
                         obj["type"] = "float";
-                        obj["value"] = f.Value.ToString("G",CultureInfo.InvariantCulture);
+                        obj["value"] = f.Value.ToString("G", CultureInfo.InvariantCulture);
                         break;
                     case TomlDateTime dt:
                         obj["type"] = "datetime";
@@ -70,8 +69,10 @@ namespace TommyDecoder
                             jsonArray.Add(o);
                             Traverse(o, arrValue);
                         }
+
                         break;
                 }
+
                 return;
             }
 
