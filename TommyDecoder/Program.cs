@@ -27,7 +27,7 @@ namespace TommyDecoder
         {
             if (obj is JSONArray jsonArr && node is TomlArray tomlArray)
             {
-                foreach (var tomlArrayValue in tomlArray.Values)
+                foreach (var tomlArrayValue in tomlArray.Children)
                 {
                     var newNode = new JSONObject();
                     jsonArr.Add(newNode);
@@ -64,7 +64,7 @@ namespace TommyDecoder
                         var jsonArray = new JSONArray();
                         obj["type"] = "array";
                         obj["value"] = jsonArray;
-                        foreach (var arrValue in arr.Values)
+                        foreach (var arrValue in arr.Children)
                         {
                             var o = new JSONObject();
                             jsonArray.Add(o);
@@ -75,33 +75,17 @@ namespace TommyDecoder
                 return;
             }
 
-            foreach (var keyValuePair in node.Children)
+            foreach (var key in node.Keys)
             {
+                var val = node[key];
                 JSONNode newNode;
-                if (keyValuePair.Value is TomlArray arr && arr.Values.Count > 0 && arr.Values[0] is TomlTable)
+                if (val is TomlArray arr && arr.ChildrenCount > 0 && arr[0] is TomlTable)
                     newNode = new JSONArray();
                 else
                     newNode = new JSONObject();
-                obj[keyValuePair.Key] = newNode;
-                Traverse(newNode, keyValuePair.Value);
+                obj[key] = newNode;
+                Traverse(newNode, val);
             }
-
-            //if (node is TomlTable tbl)
-            //{
-            //    JSONNode o;
-            //    if (nodeKey == null)
-            //        o = obj;
-            //    else
-            //    {
-            //        o = new JSONObject();
-            //        obj[nodeKey] = o;
-            //    }
-                
-            //    foreach (var keyValuePair in tbl.Children)
-            //    {
-            //        Traverse(o, keyValuePair.Value, keyValuePair.Key);
-            //    }
-            //}
         }
     }
 }

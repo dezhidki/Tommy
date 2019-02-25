@@ -11,9 +11,7 @@ namespace TommyTests
         [TestMethod]
         public void TestFailedValidatorEntries()
         {
-            string input = @"answer4 = ""\u03B4""
-answer8 = ""\U000003B4""
-";
+            string input = @"arr6 = [ 1, 2.0 ] # INVALID";
 
             using (var sr = new StringReader(input))
             {
@@ -59,7 +57,7 @@ answer8 = ""\U000003B4""
             date5 = 1979-05-27
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
                 ["str1"] = "Hello, world!",
                 ["int1"] = 10,
@@ -135,9 +133,9 @@ answer8 = ""\U000003B4""
                 insider = 'wew2'
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
-                ["test"] = new TomlNode[]
+                ["test"] = new []
                 {
                     new TomlTable
                     {
@@ -150,13 +148,13 @@ answer8 = ""\U000003B4""
                         ["bar"] = "Bar"
                     }
                 },
-                ["nested-keys"] = new TomlNode[]
+                ["nested-keys"] = new []
                 {
                     new TomlTable
                     {
                         ["foo"] = "Foo",
                         ["bar"] = "Bar",
-                        ["inside"] = new TomlNode[]
+                        ["inside"] = new []
                         {
                             new TomlTable
                             {
@@ -172,7 +170,7 @@ answer8 = ""\U000003B4""
                     {
                         ["foo"] = "Foo2",
                         ["bar"] = "Bar2",
-                        ["inside"] = new TomlNode[]
+                        ["inside"] = new []
                         {
                             new TomlTable
                             {
@@ -204,25 +202,25 @@ answer8 = ""\U000003B4""
             nested-table = { foo.bar = { bar = 'Hello', foo.baz = 'World!' }, ""$0"" = ""Hello, world!"" } # Nested inline tables with literal keys
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
-                ["inline-table"] = new TomlTable
+                ["inline-table"] =
                 {
                     ["foo"] = "foo",
                     ["bar"] = "bar"
                 },
-                ["inline-table-arrays"] = new TomlTable
+                ["inline-table-arrays"] =
                 {
                     ["arr"] = new TomlNode[] {"foo", "bar"}
                 },
-                ["nested-table"] = new TomlTable
+                ["nested-table"] =
                 {
-                    ["foo"] = new TomlNode
+                    ["foo"] =
                     {
-                        ["bar"] = new TomlTable
+                        ["bar"] =
                         {
                             ["bar"] = "Hello",
-                            ["foo"] = new TomlNode
+                            ["foo"] =
                             {
                                 ["baz"] = "World!"
                             }
@@ -272,7 +270,7 @@ because reasons'''
             multi_array = [[""bananas"", 'apples'], ""Dunno what this is"", [ 'Veemo', 'Woomy!' ]]
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
                 ["array"] = new TomlNode[] {"foo", "bar", "baz"},
                 ["multiline_array"] = new TomlNode[] {"foo", "bar", "baz"},
@@ -309,7 +307,7 @@ because reasons'''
             escaped-quote = ""Hello, \""world\""""
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
                 ["key"] = "value",
                 ["bare_key"] = "value",
@@ -350,32 +348,32 @@ because reasons'''
             str1 = ""Hello, separated!""
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
                 ["str1"] = "Hello, root node!",
-                ["foo"] = new TomlTable
+                ["foo"] =
                 {
                     ["str1"] = "Hello, foo!",
-                    ["bar"] = new TomlTable
+                    ["bar"] =
                     {
                         ["str1"] = "Hello, foo.bar!",
-                        ["$baz ^?\n"] = new TomlTable
+                        ["$baz ^?\n"] =
                         {
                             ["str1"] = "Hello, weird boy!"
                         }
                     }
                 },
-                ["baz"] = new TomlTable
+                ["baz"] =
                 {
                     ["str1"] = "Hello, baz!"
                 },
-                ["a"] = new TomlNode
+                ["a"] =
                 {
-                    ["b"] = new TomlNode
+                    ["b"] =
                     {
-                        ["c"] = new TomlNode
+                        ["c"] =
                         {
-                            ["d"] = new TomlTable
+                            ["d"] =
                             {
                                 ["str1"] = "Hello, separated!"
                             }
@@ -427,19 +425,19 @@ because reasons'''
             test2.""$foo\n"".'bar\n'.baz = ""Hello, world!""
             ";
 
-            var correctNode = new TomlNode
+            var correctNode = new TomlTable
             {
-                ["test"] = new TomlNode
+                ["test"] =
                 {
                     ["str1"] = "Hello, world!",
                     ["str2"] = "Hello, world!",
                     ["str4"] = "Hello, world!"
                 },
-                ["test2"] = new TomlNode
+                ["test2"] =
                 {
-                    ["$foo\n"] = new TomlNode
+                    ["$foo\n"] =
                     {
-                        ["bar\\n"] = new TomlNode
+                        ["bar\\n"] =
                         {
                             ["baz"] = "Hello, world!"
                         }
@@ -484,7 +482,7 @@ trimmed in raw strings.
 '''
             ";
 
-            var expectedNode = new TomlNode
+            var expectedNode = new TomlTable
             {
                 ["str1"] = "The quick brown fox jumps over the lazy dog.",
                 ["str2"] = "The quick brown fox jumps over the lazy dog.",

@@ -11,7 +11,7 @@ namespace TommyTests
         {
             var node = new TomlTable
             {
-                ["hello"] = new TomlNode
+                ["hello"] = new TomlTable
                 {
                     ["key"] = "wew",
                     ["test"] = new TomlTable

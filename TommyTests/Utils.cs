@@ -9,7 +9,7 @@ namespace TommyTests
     {
         public static void TomlNodesAreEqual(this Assert assert, TomlNode expected, TomlNode actual)
         {
-            Assert.AreEqual(expected.Children.Count, actual.Children.Count);
+            Assert.AreEqual(expected.ChildrenCount, actual.ChildrenCount);
             Assert.IsInstanceOfType(actual, expected.GetType());
 
             if (actual is TomlString actString && expected is TomlString expString)
@@ -25,10 +25,10 @@ namespace TommyTests
 
             if (actual is TomlArray actualArray && expected is TomlArray expectedArray)
             {
-                Assert.AreEqual(expectedArray.Values.Count, actualArray.Values.Count, "Array lengths are not the same!");
+                Assert.AreEqual(expectedArray.ChildrenCount, actualArray.ChildrenCount, "Array lengths are not the same!");
 
-                if (expectedArray.Values.Count > 0)
-                    foreach (var expectedActualPair in expectedArray.Values.Zip(actualArray.Values,
+                if (expectedArray.ChildrenCount > 0)
+                    foreach (var expectedActualPair in expectedArray.Children.Zip(actualArray.Children,
                                                                                 (ex, act) => new
                                                                                 {
                                                                                         expectedNode = ex,
@@ -37,14 +37,14 @@ namespace TommyTests
                         Assert.That.TomlNodesAreEqual(expectedActualPair.expectedNode, expectedActualPair.actualNode);
             }
 
-            var actualKeys = new HashSet<string>(actual.Children.Keys);
+            var actualKeys = new HashSet<string>(actual.Keys);
 
-            foreach (var keyValuePair in expected.Children)
+            foreach (var expectedKey in expected.Keys)
             {
-                if (!actual.Children.TryGetValue(keyValuePair.Key, out var node))
-                    Assert.Fail($"Child with name {keyValuePair.Key} does not exist!");
-                Assert.That.TomlNodesAreEqual(keyValuePair.Value, node);
-                actualKeys.Remove(keyValuePair.Key);
+                if (!actual.TryGetNode(expectedKey, out var node))
+                    Assert.Fail($"Child with name {expectedKey} does not exist!");
+                Assert.That.TomlNodesAreEqual(expected[expectedKey], node);
+                actualKeys.Remove(expectedKey);
             }
 
             if (actualKeys.Count != 0)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -9,11 +10,8 @@ namespace Tommy
 {
     #region TOML Nodes
 
-    public class TomlNode
+    public abstract class TomlNode
     {
-        private Dictionary<string, TomlNode> children;
-        public Dictionary<string, TomlNode> Children => children ?? (children = new Dictionary<string, TomlNode>());
-
         public virtual bool HasValue { get; } = false;
         public virtual bool IsArray { get; } = false;
         public virtual bool IsTable { get; } = false;
@@ -23,11 +21,65 @@ namespace Tommy
         public virtual bool IsDateTime { get; } = false;
         public virtual bool IsBoolean { get; } = false;
 
+        public virtual TomlTable AsTable => this as TomlTable;
+        public virtual TomlString AsString => this as TomlString;
+        public virtual TomlInteger AsInteger => this as TomlInteger;
+        public virtual TomlFloat AsFloat => this as TomlFloat;
+        public virtual TomlBoolean AsBoolean => this as TomlBoolean;
+        public virtual TomlDateTime AsDateTime => this as TomlDateTime;
+        public virtual TomlArray AsArray => this as TomlArray;
+
+        public virtual int ChildrenCount => 0;
+
         public virtual TomlNode this[string key]
         {
-            get => Children[key];
-            set => Children[key] = value;
+            get => null;
+            set { }
         }
+
+        public virtual TomlNode this[int index]
+        {
+            get => null;
+            set { }
+        }
+
+        public virtual IEnumerable<TomlNode> Children
+        {
+            get { yield break; }
+        }
+
+        public virtual IEnumerable<string> Keys
+        {
+            get { yield break; }
+        }
+
+        public virtual bool TryGetNode(string key, out TomlNode node)
+        {
+            node = null;
+            return false;
+        }
+
+        public virtual bool HasKey(string key) => false;
+
+        public virtual bool HasItemAt(int index) => false;
+
+        public virtual void Add(string key, TomlNode node) { }
+
+        public virtual void Add(TomlNode node) { }
+
+        public virtual void Delete(TomlNode node) { }
+
+        public virtual void Delete(string key) { }
+
+        public virtual void Delete(int index) { }
+
+        public virtual void AddRange(IEnumerable<TomlNode> nodes)
+        {
+            foreach (var tomlNode in nodes)
+                Add(tomlNode);
+        }
+
+        #region Native type to TOML cast
 
         public static implicit operator TomlNode(string value) =>
             new TomlString
@@ -68,9 +120,29 @@ namespace Tommy
         public static implicit operator TomlNode(TomlNode[] nodes)
         {
             var result = new TomlArray();
-            result.Values.AddRange(nodes);
+            result.AddRange(nodes);
             return result;
         }
+
+        #endregion
+
+        #region TOML to native type cast
+
+        public static implicit operator string(TomlNode value) => value.ToString();
+
+        public static implicit operator int(TomlNode value) => (int) value.AsInteger.Value;
+
+        public static implicit operator long(TomlNode value) => value.AsInteger.Value;
+
+        public static implicit operator float(TomlNode value) => (float) value.AsFloat.Value;
+
+        public static implicit operator double(TomlNode value) => value.AsFloat.Value;
+
+        public static implicit operator bool(TomlNode value) => value.AsBoolean.Value;
+
+        public static implicit operator DateTime(TomlNode value) => value.AsDateTime.Value;
+
+        #endregion
     }
 
     public class TomlString : TomlNode
@@ -78,26 +150,13 @@ namespace Tommy
         public override bool HasValue { get; } = true;
         public override bool IsString { get; } = true;
 
-        public override TomlNode this[string key]
-        {
-            get => null;
-            set { }
-        }
-
         public string Value { get; set; }
     }
 
     public class TomlInteger : TomlNode
     {
         public override bool IsInteger { get; } = true;
-
         public override bool HasValue { get; } = true;
-
-        public override TomlNode this[string key]
-        {
-            get => null;
-            set { }
-        }
 
         public long Value { get; set; }
     }
@@ -107,12 +166,6 @@ namespace Tommy
         public override bool IsFloat { get; } = true;
         public override bool HasValue { get; } = true;
 
-        public override TomlNode this[string key]
-        {
-            get => null;
-            set { }
-        }
-
         public double Value { get; set; }
     }
 
@@ -120,12 +173,6 @@ namespace Tommy
     {
         public override bool IsBoolean { get; } = true;
         public override bool HasValue { get; } = true;
-
-        public override TomlNode this[string key]
-        {
-            get => null;
-            set { }
-        }
 
         public bool Value { get; set; }
     }
@@ -135,47 +182,147 @@ namespace Tommy
         public override bool IsDateTime { get; } = true;
         public override bool HasValue { get; } = true;
 
-        public override TomlNode this[string key]
-        {
-            get => null;
-            set { }
-        }
-
         public DateTime Value { get; set; }
     }
 
     public class TomlArray : TomlNode
     {
-        private List<TomlNode> _values;
+        private List<TomlNode> values;
+
         public override bool HasValue { get; } = true;
         public override bool IsArray { get; } = true;
-        public bool IsArrayTable { get; set; }
+        public bool IsTableArray { get; set; }
+        public List<TomlNode> RawArray => values ?? (values = new List<TomlNode>());
 
-        public override TomlNode this[string key]
+        public override TomlNode this[int index]
         {
-            get => null;
-            set { }
+            get
+            {
+                if (index != -1)
+                    return RawArray[index];
+
+                var lazy = new TomlLazy(this);
+                RawArray.Insert(index, lazy);
+                return lazy;
+            }
+            set => RawArray[index] = value;
         }
 
-        public TomlNode this[int index]
-        {
-            get => Values[index];
-            set => Values[index] = value;
-        }
+        public override int ChildrenCount => RawArray.Count;
 
-        public List<TomlNode> Values => _values ?? (_values = new List<TomlNode>());
+        public override IEnumerable<TomlNode> Children => RawArray.AsEnumerable();
 
-        public void Add(TomlNode node)
-        {
-            Values.Add(node);
-        }
+        public override void Add(TomlNode node) => RawArray.Add(node);
+
+        public override void AddRange(IEnumerable<TomlNode> nodes) => RawArray.AddRange(nodes);
+
+        public override void Delete(TomlNode node) => RawArray.Remove(node);
+
+        public override void Delete(int index) => RawArray.RemoveAt(index);
     }
 
     public class TomlTable : TomlNode
     {
+        private Dictionary<string, TomlNode> children;
+
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
-        public bool IsSectionTable { get; set; }
+        public bool IsSection { get; set; }
+        public Dictionary<string, TomlNode> RawTable => children ?? (children = new Dictionary<string, TomlNode>());
+
+        public override TomlNode this[string key]
+        {
+            get
+            {
+                if (RawTable.TryGetValue(key, out var result))
+                    return result;
+
+                var lazy = new TomlLazy(this);
+                RawTable[key] = lazy;
+                return lazy;
+            }
+            set => RawTable[key] = value;
+        }
+
+        public override int ChildrenCount => RawTable.Count;
+
+        public override IEnumerable<TomlNode> Children => RawTable.Select(kv => kv.Value);
+
+        public override IEnumerable<string> Keys => RawTable.Select(kv => kv.Key);
+
+        public override bool HasKey(string key) => RawTable.ContainsKey(key);
+
+        public override void Add(string key, TomlNode node) => RawTable.Add(key, node);
+
+        public override bool TryGetNode(string key, out TomlNode node) => RawTable.TryGetValue(key, out node);
+
+        public override void Delete(TomlNode node) => RawTable.Remove(RawTable.First(kv => kv.Value == node).Key);
+
+        public override void Delete(string key) => RawTable.Remove(key);
+    }
+
+    public class TomlLazy : TomlNode
+    {
+        private readonly TomlNode parent;
+        private TomlNode replacement;
+
+        public TomlLazy(TomlNode parent) => this.parent = parent;
+
+        public override TomlNode this[int index]
+        {
+            get => Set<TomlArray>()[index];
+            set => Set<TomlArray>()[index] = value;
+        }
+
+        public override TomlNode this[string key]
+        {
+            get => Set<TomlTable>()[key];
+            set => Set<TomlTable>()[key] = value;
+        }
+
+        public override void Add(TomlNode node) => Set<TomlArray>().Add(node);
+
+        public override void Add(string key, TomlNode node) => Set<TomlTable>().Add(key, node);
+
+        public override void AddRange(IEnumerable<TomlNode> nodes) => Set<TomlArray>().AddRange(nodes);
+
+        private TomlNode Set<T>() where T : TomlNode, new()
+        {
+            if (replacement != null)
+                return replacement;
+
+            var newNode = new T();
+            if (parent.IsTable)
+            {
+                var key = parent.Keys.FirstOrDefault(s => parent.TryGetNode(s, out var node) && node.Equals(this));
+                if (key == null)
+                    return default(T);
+
+                parent[key] = newNode;
+            }
+            else if (parent.IsArray)
+            {
+                var index = 0;
+                foreach (var child in parent.Children)
+                {
+                    if (child == this)
+                        break;
+                    index++;
+                }
+
+                if (index == parent.ChildrenCount)
+                    return default(T);
+
+                parent[index] = newNode;
+            }
+            else
+            {
+                return default(T);
+            }
+
+            replacement = newNode;
+            return newNode;
+        }
     }
 
     #endregion
@@ -184,7 +331,7 @@ namespace Tommy
     {
         public static TomlNode Parse(TextReader reader)
         {
-            var rootNode = new TomlNode();
+            var rootNode = new TomlTable();
 
             var currentNode = rootNode;
 
@@ -408,20 +555,6 @@ namespace Tommy
 
         #region Key-Value pair parsing
 
-        /// <summary>
-        ///     Reads a single key-value pair.
-        /// </summary>
-        /// <remarks>
-        ///     The method assumes the cursor is at the start of the key:
-        ///     foo.bar = "value"
-        ///     ^
-        ///     The method consumes all the characters that belong to the key-value-pair:
-        ///     foo.bar = "value"
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <param name="keyParts"></param>
-        /// <returns></returns>
         private static TomlNode ReadKeyValuePair(TextReader reader, List<string> keyParts)
         {
             int cur;
@@ -456,20 +589,6 @@ namespace Tommy
             return null;
         }
 
-        /// <summary>
-        ///     Reads a single value.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the start of the value (or whitespace before the value):
-        ///     "test"
-        ///     ^
-        ///     The method consumes all characters that belong to the value:
-        ///     "test"
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <param name="skipNewlines"></param>
-        /// <returns></returns>
         private static TomlNode ReadValue(TextReader reader, bool skipNewlines = false)
         {
             int cur;
@@ -521,21 +640,6 @@ namespace Tommy
             return null;
         }
 
-        /// <summary>
-        ///     Reads the name of the key (either table key or value key).
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the first value in the key name:
-        ///     foo.bar
-        ///     ^
-        ///     The method consumes all of the key so that the cursor position is after the last character:
-        ///     foo.bar
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <param name="parts"></param>
-        /// <param name="until"></param>
-        /// <param name="skipWhitespace"></param>
         private static void ReadKeyName(TextReader reader,
                                         ref List<string> parts,
                                         char until,
@@ -563,6 +667,9 @@ namespace Tommy
                     {
                         break;
                     }
+
+                if (buffer.Length == 0)
+                    prevWasSpace = false;
 
                 if (c == SUBKEY_SEPARATOR)
                 {
@@ -700,19 +807,6 @@ namespace Tommy
             throw new Exception("Invalid value!");
         }
 
-        /// <summary>
-        ///     Reads the array.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the start of the array:
-        ///     ["a", "b"]
-        ///     ^
-        ///     Consumes all characters until the end of the array:
-        ///     ["a", "b"]
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <returns></returns>
         private static TomlArray ReadArray(TextReader reader)
         {
             // Consume the start of array character
@@ -754,7 +848,7 @@ namespace Tommy
 
                 currentValue = ReadValue(reader, true);
 
-                if (result.Values.Count != 0 && result[0].GetType() != currentValue.GetType())
+                if (result.ChildrenCount != 0 && result[0].GetType() != currentValue.GetType())
                     throw new Exception("Arrays cannot have mixed types!");
 
                 continue;
@@ -827,21 +921,6 @@ namespace Tommy
 
         #region String parsing
 
-        /// <summary>
-        ///     Checks whether the quote is triple quote.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the first quote character:
-        ///     """
-        ///     ^
-        ///     Consumes either one character (if not triple quote) or three characters (if triple quote)
-        ///     """
-        ///     ^
-        /// </remarks>
-        /// <param name="quote"></param>
-        /// <param name="reader"></param>
-        /// <param name="excess"></param>
-        /// <returns></returns>
         private static bool IsTripleQuote(char quote, TextReader reader, out char excess)
         {
             // Copypasta, but it's faster...
@@ -940,20 +1019,6 @@ namespace Tommy
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
 
-        /// <summary>
-        ///     Reads a multiline string.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the cursor is at the *first value* that belongs to the string:
-        ///     """test"""
-        ///     ^
-        ///     Consumes the whole string along with ending quotes:
-        ///     """test"""
-        ///     ^
-        /// </remarks>
-        /// <param name="quote"></param>
-        /// <param name="reader"></param>
-        /// <returns></returns>
         private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
         {
             var isBasic = quote == BASIC_STRING_SYMBOL;
@@ -1050,7 +1115,7 @@ namespace Tommy
                 for (var index = 0; index < path.Count - 1; index++)
                 {
                     var subkey = path[index];
-                    if (latestNode.Children.TryGetValue(subkey, out var currentNode))
+                    if (latestNode.TryGetNode(subkey, out var currentNode))
                     {
                         if (currentNode.HasValue)
                             throw new Exception("The key already has a value assigned to it!");
@@ -1066,7 +1131,7 @@ namespace Tommy
                     latestNode = currentNode;
                 }
 
-            if (latestNode.Children.ContainsKey(path[path.Count - 1]))
+            if (latestNode.HasKey(path[path.Count - 1]))
                 throw new Exception("The same key is already defined!");
 
             latestNode[path[path.Count - 1]] = node;
@@ -1083,13 +1148,13 @@ namespace Tommy
             {
                 var subkey = path[index];
 
-                if (latestNode.Children.TryGetValue(subkey, out var node))
+                if (latestNode.TryGetNode(subkey, out var node))
                 {
                     if (node.IsArray && arrayTable)
                     {
                         var arr = (TomlArray) node;
 
-                        if (!arr.IsArrayTable)
+                        if (!arr.IsTableArray)
                             throw new Exception("The array was defined as a key-value pair!");
 
                         if (index == path.Count - 1)
@@ -1099,16 +1164,16 @@ namespace Tommy
                             break;
                         }
 
-                        latestNode = arr[arr.Values.Count - 1];
+                        latestNode = arr[arr.ChildrenCount - 1];
                         continue;
                     }
 
                     if (node.HasValue)
                     {
-                        if (!(node is TomlArray array) || !array.IsArrayTable)
+                        if (!(node is TomlArray array) || !array.IsTableArray)
                             throw new Exception("The key has a value assigned to it!");
 
-                        latestNode = array.Values[array.Values.Count - 1];
+                        latestNode = array[array.ChildrenCount - 1];
                         continue;
                     }
 
@@ -1116,7 +1181,7 @@ namespace Tommy
                     {
                         if (arrayTable && !node.IsArray)
                             throw new Exception("The key is not an array!");
-                        if (node is TomlTable tbl && tbl.IsSectionTable)
+                        if (node is TomlTable tbl && tbl.IsSection)
                             throw new Exception("The table has been already defined previously!");
                     }
                 }
@@ -1125,7 +1190,7 @@ namespace Tommy
                     if (index == path.Count - 1 && arrayTable)
                     {
                         var table = new TomlTable();
-                        var arr = new TomlArray {IsArrayTable = true};
+                        var arr = new TomlArray {IsTableArray = true};
                         arr.Add(table);
                         latestNode[subkey] = arr;
                         latestNode = table;
@@ -1140,7 +1205,7 @@ namespace Tommy
             }
 
             var result = (TomlTable) latestNode;
-            result.IsSectionTable = true;
+            result.IsSection = true;
             return result;
         }
 
@@ -1193,7 +1258,7 @@ namespace Tommy
                         stringBuilder.Append('\\');
                         break;
                     case 'u':
-                        if(next + 4 >= txt.Length)
+                        if (next + 4 >= txt.Length)
                             throw new Exception("Undefined escape sequence!");
                         stringBuilder.Append(char.ConvertFromUtf32(Convert.ToInt32(txt.Substring(next + 1, 4), 16)));
                         num += 4;
