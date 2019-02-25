@@ -1079,6 +1079,7 @@ namespace Tommy
             for (var index = 0; index < path.Count; index++)
             {
                 var subkey = path[index];
+
                 if (latestNode.Children.TryGetValue(subkey, out var node))
                 {
                     if (node.IsArray && arrayTable)
@@ -1100,7 +1101,13 @@ namespace Tommy
                     }
 
                     if (node.HasValue)
-                        throw new Exception("The key has a value assigned to it!");
+                    {
+                        if (!(node is TomlArray array) || !array.IsArrayTable)
+                            throw new Exception("The key has a value assigned to it!");
+
+                        latestNode = array.Values[array.Values.Count - 1];
+                        continue;
+                    }
 
                     if (index == path.Count - 1)
                     {
