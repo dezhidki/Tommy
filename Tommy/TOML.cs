@@ -261,7 +261,7 @@ namespace Tommy
         public override void Delete(string key) => RawTable.Remove(key);
     }
 
-    public class TomlLazy : TomlNode
+    class TomlLazy : TomlNode
     {
         private readonly TomlNode parent;
         private TomlNode replacement;
