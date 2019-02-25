@@ -235,11 +235,6 @@ namespace Tommy
 
                 if (state == ParseState.Table)
                 {
-                    // TODO: Array table
-
-                    if (IsWhiteSpace(c))
-                        goto consume_character;
-
                     if (keyParts.Count == 0)
                     {
                         // We have array table

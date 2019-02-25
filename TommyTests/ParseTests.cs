@@ -9,6 +9,17 @@ namespace TommyTests
     public class ParseTests
     {
         [TestMethod]
+        public void TestFailedValidatorEntries()
+        {
+            string input = @"[ [table]]";
+
+            using (var sr = new StringReader(input))
+            {
+                TOML.Parse(sr);
+            }
+        }
+
+        [TestMethod]
         public void TestValueParse()
         {
             var input = @"
