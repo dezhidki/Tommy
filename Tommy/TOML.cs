@@ -541,6 +541,7 @@ namespace Tommy
         {
             var buffer = new StringBuilder();
             var quoted = false;
+            bool prevWasSpace = false;
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
@@ -552,7 +553,10 @@ namespace Tommy
 
                 if (IsWhiteSpace(c))
                     if (skipWhitespace)
+                    {
+                        prevWasSpace = true;
                         goto consume_character;
+                    }
                     else
                         break;
 
@@ -564,8 +568,12 @@ namespace Tommy
                     parts.Add(buffer.ToString());
                     buffer.Length = 0;
                     quoted = false;
+                    prevWasSpace = false;
                     goto consume_character;
                 }
+
+                if (prevWasSpace)
+                    throw new Exception("Invalid spacing in key name!");
 
                 if (IsQuoted(c))
                 {

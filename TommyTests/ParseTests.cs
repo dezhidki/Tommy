@@ -11,7 +11,7 @@ namespace TommyTests
         [TestMethod]
         public void TestFailedValidatorEntries()
         {
-            string input = @"[ [table]]";
+            string input = @"[invalid key]";
 
             using (var sr = new StringReader(input))
             {
