@@ -11,7 +11,13 @@ namespace TommyTests
         [TestMethod]
         public void TestFailedValidatorEntries()
         {
-            string input = @"[invalid key]";
+            string input = @"
+            name.first = ""Tom""
+            name.last = ""Preston-Werner""
+            point.x = 1
+            point.y = 2
+            l1.l2.l3 = { l4.l5.l6 = 42}
+            ";
 
             using (var sr = new StringReader(input))
             {

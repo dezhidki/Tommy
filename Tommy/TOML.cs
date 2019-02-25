@@ -612,7 +612,7 @@ namespace Tommy
         #region Non-string value parsing
 
         private static bool IsValueSeparator(char c) =>
-            c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == ARRAY_START_SYMBOL;
+            c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
 
         private static string ReadRawValue(TextReader reader)
         {
