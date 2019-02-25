@@ -149,7 +149,7 @@ namespace Tommy
         private List<TomlNode> _values;
         public override bool HasValue { get; } = true;
         public override bool IsArray { get; } = true;
-        public bool IsArrayTable { get; set; } = false;
+        public bool IsArrayTable { get; set; }
 
         public override TomlNode this[string key]
         {
@@ -175,7 +175,7 @@ namespace Tommy
     {
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
-        public bool IsSectionTable { get; set; } = false;
+        public bool IsSectionTable { get; set; }
     }
 
     #endregion
@@ -298,7 +298,7 @@ namespace Tommy
                 reader.Read();
             }
 
-            if(state != ParseState.None && state != ParseState.SkipToNextLine)
+            if (state != ParseState.None && state != ParseState.SkipToNextLine)
                 throw new Exception("Unexpected end of file!");
 
             return rootNode;
@@ -355,7 +355,8 @@ namespace Tommy
             new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex FloatPattern =
-            new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
+            new
+                Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
                       RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Dictionary<string, int> bases = new Dictionary<string, int>
@@ -542,7 +543,7 @@ namespace Tommy
         {
             var buffer = new StringBuilder();
             var quoted = false;
-            bool prevWasSpace = false;
+            var prevWasSpace = false;
             int cur;
             while ((cur = reader.Peek()) >= 0)
             {
@@ -559,7 +560,9 @@ namespace Tommy
                         goto consume_character;
                     }
                     else
+                    {
                         break;
+                    }
 
                 if (c == SUBKEY_SEPARATOR)
                 {
@@ -859,7 +862,7 @@ namespace Tommy
             // Consume the second quote
             excess = (char) reader.Read();
 
-            if ((cur = reader.Peek()) < 0 || (char)cur != quote)
+            if ((cur = reader.Peek()) < 0 || (char) cur != quote)
                 return false;
 
             // Consume the final quote
@@ -876,8 +879,8 @@ namespace Tommy
                                                         StringBuilder sb,
                                                         ref bool escaped)
         {
-            if(ShouldBeEscaped(c))
-                throw new Exception($"The character U+{(int)c:X8} must be escaped!");
+            if (ShouldBeEscaped(c))
+                throw new Exception($"The character U+{(int) c:X8} must be escaped!");
 
             if (escaped)
             {
@@ -924,7 +927,7 @@ namespace Tommy
 
             if (initialData != '\0' &&
                 ProcessQuotedValueCharacter(quote, isBasic, initialData, reader.Peek(), sb, ref escaped))
-                    return isBasic ? sb.ToString().Unescape() : sb.ToString();
+                return isBasic ? sb.ToString().Unescape() : sb.ToString();
 
             int cur;
             while ((cur = reader.Read()) >= 0)
@@ -967,7 +970,7 @@ namespace Tommy
                 var c = (char) cur;
 
                 if (ShouldBeEscaped(c))
-                    throw new Exception($"The character U+{(int)c:X8} must be escaped!");
+                    throw new Exception($"The character U+{(int) c:X8} must be escaped!");
 
                 // Trim the first newline
                 if (first && IsNewLine(c))
@@ -1063,7 +1066,7 @@ namespace Tommy
                     latestNode = currentNode;
                 }
 
-            if(latestNode.Children.ContainsKey(path[path.Count - 1]))
+            if (latestNode.Children.ContainsKey(path[path.Count - 1]))
                 throw new Exception("The same key is already defined!");
 
             latestNode[path[path.Count - 1]] = node;
@@ -1111,9 +1114,9 @@ namespace Tommy
 
                     if (index == path.Count - 1)
                     {
-                        if(arrayTable && !node.IsArray)
+                        if (arrayTable && !node.IsArray)
                             throw new Exception("The key is not an array!");
-                        if(node is TomlTable tbl && tbl.IsSectionTable)
+                        if (node is TomlTable tbl && tbl.IsSectionTable)
                             throw new Exception("The table has been already defined previously!");
                     }
                 }
@@ -1122,14 +1125,14 @@ namespace Tommy
                     if (index == path.Count - 1 && arrayTable)
                     {
                         var table = new TomlTable();
-                        var arr = new TomlArray { IsArrayTable = true };
+                        var arr = new TomlArray {IsArrayTable = true};
                         arr.Add(table);
                         latestNode[subkey] = arr;
                         latestNode = table;
                         break;
                     }
 
-                    node = new TomlTable(); //index == path.Count - 1 ? new TomlTable() : new TomlNode();
+                    node = new TomlTable();
                     latestNode[subkey] = node;
                 }
 
