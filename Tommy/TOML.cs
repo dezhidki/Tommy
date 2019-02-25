@@ -982,21 +982,6 @@ namespace Tommy
             return false;
         }
 
-        /// <summary>
-        ///     Reads a single-line string from the string.
-        /// </summary>
-        /// <remarks>
-        ///     Assumes the next available character is at the string contents:
-        ///     "test"
-        ///     ^
-        ///     (possibly with initial data)
-        ///     The method consumes the whole string along with the closing quote:
-        ///     "test"
-        ///     ^
-        /// </remarks>
-        /// <param name="reader"></param>
-        /// <param name="initialData"></param>
-        /// <returns></returns>
         private static string ReadQuotedValueSingleLine(char quote, TextReader reader, char initialData = '\0')
         {
             var isBasic = quote == BASIC_STRING_SYMBOL;
