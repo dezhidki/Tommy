@@ -301,7 +301,7 @@ namespace Tommy
                 reader.Read();
             }
 
-            if(state != ParseState.None)
+            if(state != ParseState.None && state != ParseState.SkipToNextLine)
                 throw new Exception("Unexpected end of file!");
 
             return rootNode;
