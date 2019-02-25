@@ -342,7 +342,7 @@ namespace Tommy
         private static bool IsBareKey(char c) =>
             'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
 
-        private static bool ShouldBeEscaped(char c) => c <= '\u001f' || c == '\u007f';
+        private static bool ShouldBeEscaped(char c) => (c <= '\u001f' || c == '\u007f') && !IsNewLine(c);
 
         #endregion
 
@@ -1057,8 +1057,8 @@ namespace Tommy
                     {
                         if (currentNode.HasValue)
                             throw new Exception("The key already has a value assigned to it!");
-                        if (currentNode.IsTable)
-                            throw new Exception("The key is a table and thus is not a valid value");
+                        //if (currentNode.IsTable)
+                        //    throw new Exception("The key is a table and thus is not a valid value");
                     }
                     else
                     {
