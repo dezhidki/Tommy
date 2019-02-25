@@ -345,7 +345,7 @@ namespace Tommy
         private static bool IsBareKey(char c) =>
             'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
 
-        private static bool IsNumber(char c) => '0' <= c && c <= '9';
+        private static bool ShouldBeEscaped(char c) => c <= '\u001f' || c == '\u007f';
 
         #endregion
 
@@ -874,6 +874,9 @@ namespace Tommy
                                                         StringBuilder sb,
                                                         ref bool escaped)
         {
+            if(ShouldBeEscaped(c))
+                throw new Exception($"The character U+{(int)c:X8} must be escaped!");
+
             if (escaped)
             {
                 sb.Append(c);
@@ -961,6 +964,9 @@ namespace Tommy
             {
                 var c = (char) cur;
 
+                if (ShouldBeEscaped(c))
+                    throw new Exception($"The character U+{(int)c:X8} must be escaped!");
+
                 // Trim the first newline
                 if (first && IsNewLine(c))
                 {
@@ -970,6 +976,8 @@ namespace Tommy
                 }
 
                 first = false;
+
+                //TODO: Reuse ProcessQuotedValueCharacter
 
                 // Skip the current character if it is going to be escaped later
                 if (escaped)
