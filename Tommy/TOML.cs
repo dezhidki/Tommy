@@ -149,6 +149,7 @@ namespace Tommy
         private List<TomlNode> _values;
         public override bool HasValue { get; } = true;
         public override bool IsArray { get; } = true;
+        public bool IsArrayTable { get; set; } = false;
 
         public override TomlNode this[string key]
         {
@@ -1086,6 +1087,9 @@ namespace Tommy
                     {
                         var arr = (TomlArray) node;
 
+                        if (!arr.IsArrayTable)
+                            throw new Exception("The array was defined as a key-value pair!");
+
                         if (index == path.Count - 1)
                         {
                             latestNode = new TomlTable();
@@ -1108,7 +1112,7 @@ namespace Tommy
                     if (index == path.Count - 1 && arrayTable)
                     {
                         var table = new TomlTable();
-                        var arr = new TomlArray();
+                        var arr = new TomlArray { IsArrayTable = true };
                         arr.Add(table);
                         latestNode[subkey] = arr;
                         latestNode = table;
