@@ -11,14 +11,8 @@ namespace TommyTests
         [TestMethod]
         public void TestFailedValidatorEntries()
         {
-            string input = @"[[a]]
-    [[a.b]]
-        [a.b.c]
-            d = ""val0""
-    [[a.b]]
-        [a.b.c]
-            d = ""val1""
-
+            string input = @"answer4 = ""\u03B4""
+answer8 = ""\U000003B4""
 ";
 
             using (var sr = new StringReader(input))

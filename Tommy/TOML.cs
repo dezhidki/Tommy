@@ -1159,12 +1159,13 @@ namespace Tommy
             for (var i = 0; i < txt.Length;)
             {
                 var num = txt.IndexOf('\\', i);
+                var next = num + 1;
                 if (num < 0 || num == txt.Length - 1)
                     num = txt.Length;
                 stringBuilder.Append(txt, i, num - i);
                 if (num >= txt.Length)
                     break;
-                var c = txt[num + 1];
+                var c = txt[next];
                 switch (c)
                 {
                     case 'b':
@@ -1191,10 +1192,20 @@ namespace Tommy
                     case '\\':
                         stringBuilder.Append('\\');
                         break;
-                    default:
-                        // TODO: Add Unicode codepoint support
-                        throw new Exception("Undefined escape sequence!");
+                    case 'u':
+                        if(next + 4 >= txt.Length)
+                            throw new Exception("Undefined escape sequence!");
+                        stringBuilder.Append(char.ConvertFromUtf32(Convert.ToInt32(txt.Substring(next + 1, 4), 16)));
+                        num += 4;
                         break;
+                    case 'U':
+                        if (next + 8 >= txt.Length)
+                            throw new Exception("Undefined escape sequence!");
+                        stringBuilder.Append(char.ConvertFromUtf32(Convert.ToInt32(txt.Substring(next + 1, 8), 16)));
+                        num += 8;
+                        break;
+                    default:
+                        throw new Exception("Undefined escape sequence!");
                 }
 
                 i = num + 2;
