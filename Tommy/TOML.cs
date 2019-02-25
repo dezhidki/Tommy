@@ -607,6 +607,9 @@ namespace Tommy
 
         #region Non-string value parsing
 
+        private static bool IsValueSeparator(char c) =>
+            c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == ARRAY_START_SYMBOL;
+
         private static string ReadRawValue(TextReader reader)
         {
             var result = new StringBuilder();
@@ -616,7 +619,7 @@ namespace Tommy
             {
                 var c = (char) cur;
 
-                if (c == COMMENT_SYMBOL || IsNewLine(c) || c == ITEM_SEPARATOR)
+                if (c == COMMENT_SYMBOL || IsNewLine(c) || IsValueSeparator(c))
                     break;
 
                 result.Append(c);
