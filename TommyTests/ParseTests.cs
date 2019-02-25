@@ -12,11 +12,11 @@ namespace TommyTests
         public void TestFailedValidatorEntries()
         {
             string input = @"
-            name.first = ""Tom""
-            name.last = ""Preston-Werner""
-            point.x = 1
-            point.y = 2
-            l1.l2.l3 = { l4.l5.l6 = 42}
+            [a.b.c]
+            answer = 42
+
+            [a]
+            better = 43
             ";
 
             using (var sr = new StringReader(input))

@@ -175,6 +175,7 @@ namespace Tommy
     {
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
+        public bool IsSectionTable { get; set; } = false;
     }
 
     #endregion
@@ -1061,7 +1062,7 @@ namespace Tommy
                     }
                     else
                     {
-                        currentNode = new TomlNode();
+                        currentNode = new TomlTable();
                         latestNode[subkey] = currentNode;
                     }
 
@@ -1108,7 +1109,12 @@ namespace Tommy
                         throw new Exception("The key has a value assigned to it!");
 
                     if (index == path.Count - 1)
-                        throw new Exception("The table has been already defined previously!");
+                    {
+                        if(arrayTable && !node.IsArray)
+                            throw new Exception("The key is not an array!");
+                        if(node is TomlTable tbl && tbl.IsSectionTable)
+                            throw new Exception("The table has been already defined previously!");
+                    }
                 }
                 else
                 {
@@ -1122,14 +1128,16 @@ namespace Tommy
                         break;
                     }
 
-                    node = index == path.Count - 1 ? new TomlTable() : new TomlNode();
+                    node = new TomlTable(); //index == path.Count - 1 ? new TomlTable() : new TomlNode();
                     latestNode[subkey] = node;
                 }
 
                 latestNode = node;
             }
 
-            return (TomlTable) latestNode;
+            var result = (TomlTable) latestNode;
+            result.IsSectionTable = true;
+            return result;
         }
 
         #endregion
