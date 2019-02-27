@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
 using SimpleJSON;
 using Tommy;
@@ -11,6 +10,7 @@ namespace TommyDecoder
         private static void Main(string[] args)
         {
             var input = Console.In.ReadToEnd();
+            JSONNode.forceASCII = true;
 
             using (var sr = new StringReader(input))
             {
@@ -41,23 +41,30 @@ namespace TommyDecoder
                 {
                     case TomlString str:
                         obj["type"] = "string";
-                        obj["value"] = str.Value;
+                        obj["value"] = str.ToString();
                         break;
                     case TomlInteger i:
                         obj["type"] = "integer";
-                        obj["value"] = i.Value.ToString(CultureInfo.InvariantCulture);
+                        obj["value"] = i.Value.ToString();
                         break;
                     case TomlFloat f:
                         obj["type"] = "float";
-                        obj["value"] = f.Value.ToString("G", CultureInfo.InvariantCulture);
+                        obj["value"] = f.ToString();
                         break;
                     case TomlDateTime dt:
-                        obj["type"] = "datetime";
-                        obj["value"] = dt.Value.ToString("O", CultureInfo.InvariantCulture);
+                        if(dt.OnlyDate)
+                            obj["type"] = "date";
+                        else if (dt.OnlyTime)
+                            obj["type"] = "time";
+                        else if (dt.Value.Kind == DateTimeKind.Local)
+                            obj["type"] = "datetime-local";
+                        else
+                            obj["type"] = "datetime";
+                        obj["value"] = dt.ToString();
                         break;
                     case TomlBoolean b:
                         obj["type"] = "bool";
-                        obj["value"] = b.Value.ToString(CultureInfo.InvariantCulture).ToLowerInvariant();
+                        obj["value"] = b.ToString();
                         break;
                     case TomlArray arr:
                         var jsonArray = new JSONArray();
