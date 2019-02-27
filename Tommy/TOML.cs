@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -10,7 +11,7 @@ namespace Tommy
 {
     #region TOML Nodes
 
-    public abstract class TomlNode
+    public abstract class TomlNode : IEnumerable
     {
         public virtual bool HasValue { get; } = false;
         public virtual bool IsArray { get; } = false;
@@ -53,6 +54,8 @@ namespace Tommy
         {
             get { yield break; }
         }
+
+        public IEnumerator GetEnumerator() => Children.GetEnumerator();
 
         public virtual bool TryGetNode(string key, out TomlNode node)
         {
@@ -241,6 +244,7 @@ namespace Tommy
         public override bool HasValue { get; } = true;
         public bool OnlyDate { get; set; }
         public bool OnlyTime { get; set; }
+        public int SecondsPrecision { get; set; }
 
         public DateTime Value { get; set; }
 
@@ -249,8 +253,10 @@ namespace Tommy
             if (OnlyDate)
                 return Value.ToString(TomlSyntax.LocalDateFormat);
             if (OnlyTime)
-                return Value.ToString(TomlSyntax.RFC3339LocalTimeFormats[0]);
-            return Value.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[0]);
+                return Value.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]);
+            if (Value.Kind == DateTimeKind.Local)
+                return Value.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision]);
+            return Value.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision]);
         }
 
         public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
@@ -988,19 +994,20 @@ namespace Tommy
                 };
 
             value = value.Replace("T", " ");
-            if (DateTime.TryParseExact(value,
-                                       TomlSyntax.RFC3339Formats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out var dateTimeResult))
-                return dateTimeResult;
+            if (ParseUtils.TryParseDateTime(value,
+                                            TomlSyntax.RFC3339LocalDateTimeFormats,
+                                            DateTimeStyles.AssumeLocal,
+                                            out var dateTimeResult,
+                                            out var precision))
+                return new TomlDateTime {Value = dateTimeResult, SecondsPrecision = precision};
 
-            if (DateTime.TryParseExact(value,
-                                       TomlSyntax.RFC3339LocalDateTimeFormats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out dateTimeResult))
-                return dateTimeResult;
+            if (ParseUtils.TryParseDateTime(value,
+                                            TomlSyntax.RFC3339Formats,
+                                            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+                                            out dateTimeResult,
+                                            out precision))
+                return new TomlDateTime {Value = dateTimeResult, SecondsPrecision = precision};
+
 
             if (DateTime.TryParseExact(value,
                                        TomlSyntax.LocalDateFormat,
@@ -1009,12 +1016,12 @@ namespace Tommy
                                        out dateTimeResult))
                 return new TomlDateTime {Value = dateTimeResult, OnlyDate = true};
 
-            if (DateTime.TryParseExact(value,
-                                       TomlSyntax.RFC3339LocalTimeFormats,
-                                       CultureInfo.InvariantCulture,
-                                       DateTimeStyles.AssumeLocal,
-                                       out dateTimeResult))
-                return new TomlDateTime {Value = dateTimeResult, OnlyTime = true};
+            if (ParseUtils.TryParseDateTime(value,
+                                            TomlSyntax.RFC3339LocalTimeFormats,
+                                            DateTimeStyles.AssumeLocal,
+                                            out dateTimeResult,
+                                            out precision))
+                return new TomlDateTime {Value = dateTimeResult, OnlyTime = true, SecondsPrecision = precision};
 
             throw new Exception("Invalid value!");
         }
@@ -1095,7 +1102,7 @@ namespace Tommy
         {
             reader.Read();
 
-            var result = new TomlTable { IsInline = true };
+            var result = new TomlTable {IsInline = true};
 
             TomlNode currentValue = null;
 
@@ -1374,7 +1381,7 @@ namespace Tommy
                     }
                     else
                     {
-                        currentNode = new TomlTable();
+                        currentNode = new TomlTable {IsInline = true};
                         latestNode[subkey] = currentNode;
                     }
 
@@ -1448,7 +1455,7 @@ namespace Tommy
                     }
 
                     // TODO: Check if having it marked as non-inline is fine
-                    node = new TomlTable { IsInline = true };
+                    node = new TomlTable {IsInline = true};
                     latestNode[subkey] = node;
                 }
 
@@ -1545,14 +1552,14 @@ namespace Tommy
          */
         public static readonly string[] RFC3339Formats =
         {
-            "yyyy-MM-dd HH:mm:ssK",
-            "yyyy-MM-dd HH:mm:ss.fK",
-            "yyyy-MM-dd HH:mm:ss.ffK",
-            "yyyy-MM-dd HH:mm:ss.fffK",
-            "yyyy-MM-dd HH:mm:ss.ffffK",
-            "yyyy-MM-dd HH:mm:ss.fffffK",
-            "yyyy-MM-dd HH:mm:ss.ffffffK",
-            "yyyy-MM-dd HH:mm:ss.fffffffK"
+            "yyyy'-'MM-dd HH':'mm':'ssK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ffK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fffK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ffffK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ffffffK",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffffK"
         };
 
         /**
@@ -1560,34 +1567,34 @@ namespace Tommy
          */
         public static readonly string[] RFC3339LocalDateTimeFormats =
         {
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd HH:mm:ss.f",
-            "yyyy-MM-dd HH:mm:ss.ff",
-            "yyyy-MM-dd HH:mm:ss.fff",
-            "yyyy-MM-dd HH:mm:ss.ffff",
-            "yyyy-MM-dd HH:mm:ss.fffff",
-            "yyyy-MM-dd HH:mm:ss.ffffff",
-            "yyyy-MM-dd HH:mm:ss.fffffff"
+            "yyyy'-'MM-dd HH':'mm':'ss",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'f",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ff",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fff",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ffff",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fffff",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'ffffff",
+            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffff"
         };
 
         /**
          *  Valid full date format as per TOML spec.
          */
-        public static readonly string LocalDateFormat = "yyyy-MM-dd";
+        public static readonly string LocalDateFormat = "yyyy'-'MM'-'dd";
 
         /**
         *  Valid time formats as per TOML spec.
         */
         public static readonly string[] RFC3339LocalTimeFormats =
         {
-            "HH:mm:ss",
-            "HH:mm:ss.f",
-            "HH:mm:ss.ff",
-            "HH:mm:ss.fff",
-            "HH:mm:ss.ffff",
-            "HH:mm:ss.fffff",
-            "HH:mm:ss.ffffff",
-            "HH:mm:ss.fffffff"
+            "HH':'mm':'ss",
+            "HH':'mm':'ss'.'f",
+            "HH':'mm':'ss'.'ff",
+            "HH':'mm':'ss'.'fff",
+            "HH':'mm':'ss'.'ffff",
+            "HH':'mm':'ss'.'fffff",
+            "HH':'mm':'ss'.'ffffff",
+            "HH':'mm':'ss'.'fffffff"
         };
 
         #endregion
@@ -1632,6 +1639,30 @@ namespace Tommy
 
     internal static class ParseUtils
     {
+        public static bool TryParseDateTime(string s,
+                                            string[] formats,
+                                            DateTimeStyles styles,
+                                            out DateTime dateTime,
+                                            out int parsedFormat)
+        {
+            parsedFormat = 0;
+            dateTime = new DateTime();
+
+            for (var i = 0; i < formats.Length; i++)
+            {
+                var format = formats[i];
+                if (!DateTime.TryParseExact(s,
+                                            format,
+                                            CultureInfo.InvariantCulture,
+                                            styles,
+                                            out dateTime)) continue;
+                parsedFormat = i;
+                return true;
+            }
+
+            return false;
+        }
+
         public static void AsComment(this string self, TextWriter tw)
         {
             foreach (var line in self.Split(TomlSyntax.NEWLINE_CHARACTER))
