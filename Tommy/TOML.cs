@@ -275,11 +275,10 @@ namespace Tommy
         {
             get
             {
-                if (index != -1)
+                if (index < RawArray.Count)
                     return RawArray[index];
-
                 var lazy = new TomlLazy(this);
-                RawArray.Insert(index, lazy);
+                this[index] = lazy;
                 return lazy;
             }
             set
@@ -599,7 +598,7 @@ namespace Tommy
                         // Check if there are any comments and so far no items being declared
                         if (latestComment.Length != 0 && firstComment)
                         {
-                            rootNode.Comment = latestComment.ToString();
+                            rootNode.Comment = latestComment.ToString().TrimEnd();
                             latestComment.Length = 0;
                             firstComment = false;
                         }
@@ -612,7 +611,7 @@ namespace Tommy
                     {
                         // Consume the comment symbol and buffer the whole comment line
                         reader.Read();
-                        latestComment.AppendLine(reader.ReadLine());
+                        latestComment.AppendLine(reader.ReadLine()?.Trim());
                         continue;
                     }
 
@@ -634,7 +633,7 @@ namespace Tommy
                 if (state == ParseState.KeyValuePair)
                 {
                     var keyValuePair = ReadKeyValuePair(reader, keyParts);
-                    keyValuePair.Comment = latestComment.ToString();
+                    keyValuePair.Comment = latestComment.ToString().TrimEnd();
                     InsertNode(keyValuePair, currentNode, keyParts);
                     latestComment.Length = 0;
                     keyParts.Clear();
@@ -673,7 +672,7 @@ namespace Tommy
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
                         currentNode.IsInline = false;
-                        currentNode.Comment = latestComment.ToString();
+                        currentNode.Comment = latestComment.ToString().TrimEnd();
                         keyParts.Clear();
                         arrayTable = false;
                         latestComment.Length = 0;
@@ -1617,6 +1616,9 @@ namespace Tommy
         public const char INLINE_TABLE_END_SYMBOL = '}';
         public const char LITERAL_STRING_SYMBOL = '\'';
         public const char INT_NUMBER_SEPARATOR = '_';
+
+        public static readonly char[] NewLineCharacters = {NEWLINE_CHARACTER, NEWLINE_CARRIAGE_RETURN_CHARACTER};
+
 
         public static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == LITERAL_STRING_SYMBOL;
 
