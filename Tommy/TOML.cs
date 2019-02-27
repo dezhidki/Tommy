@@ -328,7 +328,6 @@ namespace Tommy
                 return;
             }
 
-
             tw.WriteLine();
 
             Comment?.AsComment(tw);
@@ -498,9 +497,6 @@ namespace Tommy
 
                 child.Value.ToTomlString(tw, $"{namePrefix}{child.Key}");
             }
-
-            //if(name != null)
-            //    tw.WriteLine();
         }
     }
 
@@ -534,7 +530,11 @@ namespace Tommy
             if (replacement != null)
                 return replacement;
 
-            var newNode = new T();
+            var newNode = new T
+            {
+                Comment = Comment
+            };
+
             if (parent.IsTable)
             {
                 var key = parent.Keys.FirstOrDefault(s => parent.TryGetNode(s, out var node) && node.Equals(this));
