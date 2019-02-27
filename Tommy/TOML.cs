@@ -341,7 +341,7 @@ namespace Tommy
                     throw new Exception("The array is marked as array table but contains non-table nodes!");
 
                 // Ensure it's parsed as a section
-                tbl.IsSection = true;
+                tbl.IsInline = false;
 
                 if (!first)
                 {
@@ -372,7 +372,7 @@ namespace Tommy
 
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
-        public bool IsSection { get; set; }
+        public bool IsInline { get; set; }
         public Dictionary<string, TomlNode> RawTable => children ?? (children = new Dictionary<string, TomlNode>());
 
         public override TomlNode this[string key]
@@ -430,7 +430,7 @@ namespace Tommy
         public override void ToTomlString(TextWriter tw, string name = null)
         {
             // The table is inline table
-            if (!IsSection && name != null)
+            if (IsInline && name != null)
             {
                 tw.Write(ToString());
                 return;
@@ -459,7 +459,7 @@ namespace Tommy
             {
                 // If value should be parsed as section, separate if from the bunch
                 if (child.Value is TomlArray arr && arr.IsTableArray ||
-                    child.Value is TomlTable tbl && tbl.IsSection)
+                    child.Value is TomlTable tbl && !tbl.IsInline)
                 {
                     sectionableItems.Add(child.Key, child.Value);
                     continue;
@@ -666,6 +666,7 @@ namespace Tommy
                         }
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
+                        currentNode.IsInline = false;
                         currentNode.Comment = latestComment.ToString();
                         keyParts.Clear();
                         arrayTable = false;
@@ -1094,7 +1095,7 @@ namespace Tommy
         {
             reader.Read();
 
-            var result = new TomlTable();
+            var result = new TomlTable { IsInline = true };
 
             TomlNode currentValue = null;
 
@@ -1430,7 +1431,7 @@ namespace Tommy
                     {
                         if (arrayTable && !node.IsArray)
                             throw new Exception("The key is not an array!");
-                        if (node is TomlTable tbl && tbl.IsSection)
+                        if (node is TomlTable tbl && !tbl.IsInline)
                             throw new Exception("The table has been already defined previously!");
                     }
                 }
@@ -1446,7 +1447,8 @@ namespace Tommy
                         break;
                     }
 
-                    node = new TomlTable();
+                    // TODO: Check if having it marked as non-inline is fine
+                    node = new TomlTable { IsInline = true };
                     latestNode[subkey] = node;
                 }
 
@@ -1454,7 +1456,7 @@ namespace Tommy
             }
 
             var result = (TomlTable) latestNode;
-            result.IsSection = true;
+            //result.IsInline = false;
             return result;
         }
 

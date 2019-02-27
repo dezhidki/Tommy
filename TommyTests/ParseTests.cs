@@ -13,7 +13,20 @@ namespace TommyTests
         {
             string input = @"
             # This is a test comment
+            # The first comment will always be attached to the root node
+
+            # This comment is related to the section
+            [test]
+            # This comment is related to the value
+            val = 'foo'
+
+            # Multiline comments are permitted
+            # As long as you want!
+            [test2]
+            val = 'bar'
             ";
+
+
 
             using (var sr = new StringReader(input))
             {

@@ -14,12 +14,10 @@ namespace TommyTests
             {
                 ["hello"] = new TomlTable
                 {
-                    IsSection = true,
                     Comment = "This table is used for Hello, world -commands!",
                     ["key"] = "wew",
                     ["test"] = new TomlTable
                     {
-                        IsSection = true,
                         Comment = "This is another section table!",
                         ["foo"] = "Value",
                         ["bar"] = new TomlInteger
