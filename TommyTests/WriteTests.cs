@@ -46,7 +46,7 @@ namespace TommyTests
                 }
             };
 
-            using (StringWriter sw = new StringWriter())
+            using (var sw = new StringWriter())
             {
                 node.ToTomlString(sw);
 

@@ -26,11 +26,28 @@ namespace TommyTests
             val = 'bar'
             ";
 
-
+            var expectedNode = new TomlTable
+            {
+                Comment = "This is a test comment\r\nThe first comment will always be attached to the root node",
+                ["test"] =
+                {
+                    Comment = "This comment is related to the section",
+                    ["val"] = new TomlString
+                    {
+                        Comment = "This comment is related to the value",
+                        Value = "foo"
+                    }
+                },
+                ["test2"] =
+                {
+                    Comment = "Multiline comments are permitted\r\nAs long as you want!",
+                    ["val"] = "bar"
+                }
+            };
 
             using (var sr = new StringReader(input))
             {
-                TOML.Parse(sr);
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr), false);
             }
         }
 
@@ -150,44 +167,48 @@ namespace TommyTests
 
             var expectedNode = new TomlTable
             {
-                ["test"] = new []
+                ["test"] = new TomlArray
                 {
-                    new TomlTable
+                    IsTableArray = true,
+                    [0] =
                     {
                         ["foo"] = "Hello",
                         ["bar"] = "World"
                     },
-                    new TomlTable
+                    [1] =
                     {
                         ["foo"] = "Foo",
                         ["bar"] = "Bar"
                     }
                 },
-                ["nested-keys"] = new []
+                ["nested-keys"] = new TomlArray
                 {
-                    new TomlTable
+                    IsTableArray = true,
+                    [0] =
                     {
                         ["foo"] = "Foo",
                         ["bar"] = "Bar",
-                        ["inside"] = new []
+                        ["inside"] = new TomlArray
                         {
-                            new TomlTable
+                            IsTableArray = true,
+                            [0] = 
                             {
                                 ["insider"] = "wew"
                             },
-                            new TomlTable
+                            [1] =
                             {
                                 ["insider"] = "wew2"
                             }
                         }
                     },
-                    new TomlTable
+                    [1] =
                     {
                         ["foo"] = "Foo2",
                         ["bar"] = "Bar2",
-                        ["inside"] = new []
+                        ["inside"] = new TomlArray
                         {
-                            new TomlTable
+                            IsTableArray = true,
+                            [0] =
                             {
                                 ["insider"] = "wew2"
                             }
@@ -219,21 +240,29 @@ namespace TommyTests
 
             var expectedNode = new TomlTable
             {
-                ["inline-table"] =
+                ["inline-table"] = new TomlTable
                 {
+                    IsInline = true,
                     ["foo"] = "foo",
                     ["bar"] = "bar"
                 },
-                ["inline-table-arrays"] =
+                ["inline-table-arrays"] = new TomlTable
                 {
-                    ["arr"] = new TomlNode[] {"foo", "bar"}
+                    IsInline = true,
+                    ["arr"] =
+                    {
+                        [0] = "foo",
+                        [1] = "bar"
+                    }
                 },
-                ["nested-table"] =
+                ["nested-table"] = new TomlTable
                 {
+                    IsInline = true,
                     ["foo"] =
                     {
-                        ["bar"] =
+                        ["bar"] = new TomlTable
                         {
+                            IsInline = true,
                             ["bar"] = "Hello",
                             ["foo"] =
                             {
@@ -282,22 +311,21 @@ because reasons'''
                                 ]
            
             empty_array = []
-            multi_array = [[""bananas"", 'apples'], ""Dunno what this is"", [ 'Veemo', 'Woomy!' ]]
+            multi_array = [[""bananas"", 'apples'], [""Dunno what this is""], [ 'Veemo', 'Woomy!' ]]
             ";
 
             var expectedNode = new TomlTable
             {
-                ["array"] = new TomlNode[] {"foo", "bar", "baz"},
-                ["multiline_array"] = new TomlNode[] {"foo", "bar", "baz"},
-                ["complex_array"] = new TomlNode[]
+                ["array"] = {"foo", "bar", "baz"},
+                ["multiline_array"] = {"foo", "bar", "baz"},
+                ["complex_array"] =
                 {
                     "This is a test of a complex multiline string", "bar",
                     $"Just to make sure{Environment.NewLine}we still work as expected{Environment.NewLine}because reasons",
                     "baz"
                 },
                 ["empty_array"] = new TomlArray(),
-                ["multi_array"] = new TomlNode[]
-                    {new TomlNode[] {"bananas", "apples"}, "Dunno what this is", new TomlNode[] {"Veemo", "Woomy!"}}
+                ["multi_array"] = { new TomlNode[] { "bananas", "apples"}, new TomlNode[] { "Dunno what this is" }, new TomlNode[] { "Veemo", "Woomy!"}}
             };
 
             using (var sr = new StringReader(input))

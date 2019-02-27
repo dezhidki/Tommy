@@ -7,10 +7,13 @@ namespace TommyTests
 {
     public static class Utils
     {
-        public static void TomlNodesAreEqual(this Assert assert, TomlNode expected, TomlNode actual)
+        public static void TomlNodesAreEqual(this Assert assert, TomlNode expected, TomlNode actual, bool ignoreComments = true)
         {
             Assert.AreEqual(expected.ChildrenCount, actual.ChildrenCount);
             Assert.IsInstanceOfType(actual, expected.GetType());
+
+            if(!ignoreComments)
+                Assert.AreEqual(expected.Comment, actual.Comment, "The comments are not the same!");
 
             if (actual is TomlString actString && expected is TomlString expString)
                 Assert.AreEqual(expString.Value, actString.Value);
