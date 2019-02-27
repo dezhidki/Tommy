@@ -20,6 +20,7 @@ namespace Tommy
         public virtual bool IsFloat { get; } = false;
         public virtual bool IsDateTime { get; } = false;
         public virtual bool IsBoolean { get; } = false;
+        public virtual string Comment { get; set; }
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
@@ -156,7 +157,9 @@ namespace Tommy
 
         public string Value { get; set; }
 
-        public override string ToString()
+        public override string ToString() => Value;
+
+        public override void ToTomlString(TextWriter tw, string name = null)
         {
             if (Value.IndexOf(TomlSyntax.LITERAL_STRING_SYMBOL) != -1 && PreferLiteral)
                 PreferLiteral = false;
@@ -164,10 +167,10 @@ namespace Tommy
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
                                     IsMultiline ? 3 : 1);
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
-            return $"{quotes}{result}{quotes}";
+            tw.Write(quotes);
+            tw.Write(result);
+            tw.Write(quotes);
         }
-
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
     }
 
     public class TomlInteger : TomlNode
@@ -312,13 +315,17 @@ namespace Tommy
 
         public override void ToTomlString(TextWriter tw, string name = null)
         {
+            // If it's a normal array, write it as usual
             if (!IsTableArray)
             {
                 tw.Write(ToString());
                 return;
             }
 
+
             tw.WriteLine();
+
+            Comment?.AsComment(tw);
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(name);
@@ -339,6 +346,8 @@ namespace Tommy
                 if (!first)
                 {
                     tw.WriteLine();
+
+                    Comment?.AsComment(tw);
                     tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                     tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                     tw.Write(name);
@@ -420,17 +429,24 @@ namespace Tommy
 
         public override void ToTomlString(TextWriter tw, string name = null)
         {
+            // The table is inline table
             if (!IsSection && name != null)
             {
                 tw.Write(ToString());
                 return;
             }
 
+            Comment?.AsComment(tw);
+
             if (name != null)
             {
                 tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                 tw.Write(name);
                 tw.Write(TomlSyntax.ARRAY_END_SYMBOL);
+                tw.WriteLine();
+            }
+            else if (Comment != null) // Add some spacing between the first node and the comment
+            {
                 tw.WriteLine();
             }
 
@@ -453,6 +469,7 @@ namespace Tommy
                     tw.WriteLine();
                 first = false;
 
+                child.Value.Comment?.AsComment(tw);
                 tw.Write(child.Key);
                 tw.Write(' ');
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
@@ -554,15 +571,12 @@ namespace Tommy
         public static TomlNode Parse(TextReader reader)
         {
             var rootNode = new TomlTable();
-
             var currentNode = rootNode;
-
             var state = ParseState.None;
-
             var keyParts = new List<string>();
-
-            var insideArrayTable = false;
             var arrayTable = false;
+            var latestComment = new StringBuilder();
+            var firstComment = true;
 
             int currentChar;
             while ((currentChar = reader.Peek()) >= 0)
@@ -572,15 +586,32 @@ namespace Tommy
                 if (state == ParseState.None)
                 {
                     // Skip white space
-                    if (TomlSyntax.IsWhiteSpace(c) || TomlSyntax.IsNewLine(c))
+                    if (TomlSyntax.IsWhiteSpace(c)) goto consume_character;
+
+                    if (TomlSyntax.IsNewLine(c))
+                    {
+                        // Check if there are any comments and so far no items being declared
+                        if (latestComment.Length != 0 && firstComment)
+                        {
+                            rootNode.Comment = latestComment.ToString();
+                            latestComment.Length = 0;
+                            firstComment = false;
+                        }
+
                         goto consume_character;
+                    }
 
                     // Start of a comment; ignore until newline
                     if (c == TomlSyntax.COMMENT_SYMBOL)
                     {
-                        reader.ReadLine();
+                        // Consume the comment symbol and buffer the whole comment line
+                        reader.Read();
+                        latestComment.AppendLine(reader.ReadLine());
                         continue;
                     }
+
+                    // Encountered a non-comment value. The comment must belong to it (ignore possible newlines)!
+                    firstComment = false;
 
                     if (c == TomlSyntax.TABLE_START_SYMBOL)
                     {
@@ -597,7 +628,9 @@ namespace Tommy
                 if (state == ParseState.KeyValuePair)
                 {
                     var keyValuePair = ReadKeyValuePair(reader, keyParts);
+                    keyValuePair.Comment = latestComment.ToString();
                     InsertNode(keyValuePair, currentNode, keyParts);
+                    latestComment.Length = 0;
                     keyParts.Clear();
                     state = ParseState.SkipToNextLine;
                     continue;
@@ -633,8 +666,10 @@ namespace Tommy
                         }
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
+                        currentNode.Comment = latestComment.ToString();
                         keyParts.Clear();
                         arrayTable = false;
+                        latestComment.Length = 0;
                         state = ParseState.SkipToNextLine;
                         goto consume_character;
                     }
@@ -1595,6 +1630,12 @@ namespace Tommy
 
     internal static class ParseUtils
     {
+        public static void AsComment(this string self, TextWriter tw)
+        {
+            foreach (var line in self.Split(TomlSyntax.NEWLINE_CHARACTER))
+                tw.WriteLine($"{TomlSyntax.COMMENT_SYMBOL} {line.Trim()}");
+        }
+
         public static string RemoveAll(this string txt, char toRemove)
         {
             var sb = new StringBuilder(txt.Length);

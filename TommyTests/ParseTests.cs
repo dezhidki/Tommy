@@ -9,9 +9,11 @@ namespace TommyTests
     public class ParseTests
     {
         [TestMethod]
-        public void TestFailedValidatorEntries()
+        public void TestComments()
         {
-            string input = @"arr6 = [ 1, 2.0 ] # INVALID";
+            string input = @"
+            # This is a test comment
+            ";
 
             using (var sr = new StringReader(input))
             {

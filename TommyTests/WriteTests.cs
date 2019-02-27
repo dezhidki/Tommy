@@ -15,12 +15,18 @@ namespace TommyTests
                 ["hello"] = new TomlTable
                 {
                     IsSection = true,
+                    Comment = "This table is used for Hello, world -commands!",
                     ["key"] = "wew",
                     ["test"] = new TomlTable
                     {
                         IsSection = true,
+                        Comment = "This is another section table!",
                         ["foo"] = "Value",
-                        ["bar"] = 10
+                        ["bar"] = new TomlInteger
+                        {
+                            Comment = "How many bars there are to eat",
+                            Value = 10
+                        }
                     }
                 },
                 ["value"] = 10.0,
