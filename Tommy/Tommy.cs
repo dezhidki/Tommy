@@ -446,13 +446,14 @@ namespace Tommy
                 if (!first) tw.WriteLine();
                 first = false;
 
+                var key = child.Key.AsKey();
                 child.Value.Comment?.AsComment(tw);
-                tw.Write(child.Key);
+                tw.Write(key);
                 tw.Write(' ');
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
 
-                child.Value.ToTomlString(tw, $"{namePrefix}{child.Key}");
+                child.Value.ToTomlString(tw, $"{namePrefix}{key}");
             }
 
             if (sectionableItems.Count == 0) return;
@@ -546,7 +547,7 @@ namespace Tommy
 
         public static bool ForceASCII { get; set; } = false;
 
-        public static TomlNode Parse(TextReader reader)
+        public static TomlTable Parse(TextReader reader)
         {
             var rootNode = new TomlTable();
             var currentNode = rootNode;
@@ -949,7 +950,7 @@ namespace Tommy
                 };
 
             value = value.Replace("T", " ");
-            if (ParseUtils.TryParseDateTime(value,
+            if (StringUtils.TryParseDateTime(value,
                                             TomlSyntax.RFC3339LocalDateTimeFormats,
                                             DateTimeStyles.AssumeLocal,
                                             out var dateTimeResult,
@@ -960,7 +961,7 @@ namespace Tommy
                     SecondsPrecision = precision
                 };
 
-            if (ParseUtils.TryParseDateTime(value,
+            if (StringUtils.TryParseDateTime(value,
                                             TomlSyntax.RFC3339Formats,
                                             DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
                                             out dateTimeResult,
@@ -983,7 +984,7 @@ namespace Tommy
                     OnlyDate = true
                 };
 
-            if (ParseUtils.TryParseDateTime(value,
+            if (StringUtils.TryParseDateTime(value,
                                             TomlSyntax.RFC3339LocalTimeFormats,
                                             DateTimeStyles.AssumeLocal,
                                             out dateTimeResult,
@@ -1628,8 +1629,20 @@ namespace Tommy
         #endregion
     }
 
-    static class ParseUtils
+    static class StringUtils
     {
+        public static string AsKey(this string key)
+        {
+            var quote = false;
+            foreach (var c in key)
+            {
+                if (TomlSyntax.IsBareKey(c)) continue;
+                quote = true;
+                break;
+            }
+            return !quote ? key : $"{TomlSyntax.BASIC_STRING_SYMBOL}{key.Escape()}{TomlSyntax.BASIC_STRING_SYMBOL}";
+        }
+
         public static string Join(this string self, IEnumerable<string> subItems)
         {
             var sb = new StringBuilder();
