@@ -161,3 +161,7 @@ Some notes about the writer:
 Tommy's parser passes all syntax tests in the [toml-tests](https://github.com/BurntSushi/toml-test) test suite (with additional 0.5.0-specific tests from [toml-test#51](https://github.com/BurntSushi/toml-test/pull/51)).
 
 The parser passes some additional basic unit tests.
+
+## What's with the name?
+
+[Because TOML sounded like Tommy, hahaha](https://i.ytimg.com/vi/y9N1GV88T7g/maxresdefault.jpg)
