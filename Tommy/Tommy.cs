@@ -1709,13 +1709,13 @@ namespace Tommy
                     case '\t':
                         stringBuilder.Append(@"\t");
                         break;
-                    case '\n':
+                    case '\n' when escapeNewlines:
                         stringBuilder.Append(@"\n");
                         break;
                     case '\f':
                         stringBuilder.Append(@"\f");
                         break;
-                    case '\r':
+                    case '\r' when escapeNewlines:
                         stringBuilder.Append(@"\r");
                         break;
                     case '\\':
