@@ -7,7 +7,7 @@
 Tommy is a single-file TOML reader and writer for C#.  
 This library is meant for small, cross-platform projects that want support the most .NET versions possible.
 
-To use it, simply include [Tommy.cs]() into your project and you're done!
+To use it, simply include [Tommy.cs](Tommy/Tommy.cs) into your project and you're done!
 
 ## Features
 
