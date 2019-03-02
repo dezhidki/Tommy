@@ -12,12 +12,12 @@ To use it, simply include [Tommy.cs](Tommy/Tommy.cs) into your project and you'r
 ## Features
 
 * Full implementation of TOML 0.5.0 spec.
-* Parser implemented with `TextReader` to ensure speed and simplicity.
+* Parser implemented with `TextReader` for simplicity and vast input support (i.e. string inputs with `StringReader`, streams via `StreamReader`, etc).
 * Parses TOML into a node-based structure that is similar to [SimpleJSON](https://github.com/Bunny83/SimpleJSON).
 * Basic support for parsing and saving comments.
 * Supports .NET 3.5+, Mono, .NET Core!
-* Uses C# 7.2 syntax for smaller file size
-* Small footprint (~32 KB compiled) compared to other similar C# libraries
+* Uses C# 7.2 syntax for smaller file size.
+* Small footprint (~32 KB compiled) compared to other similar C# libraries.
 
 ## How to use
 
@@ -153,6 +153,7 @@ value = 20
 
 Some notes about the writer:
 
+* **The writer does not currently preserve the layout of the original document!** This is to save size and keep things simple for now.
 * Currently the writer doesn't use subkeys for values and instead writes out subtables. Thus instead of writing `foo.bar = "foo"` it will write a table `[foo]` with key `bar`.
 * The writer only uses basic strings for complex keys (i.e. no literal strings).
 
