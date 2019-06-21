@@ -50,6 +50,7 @@ namespace Tommy
         public virtual bool IsDateTime { get; } = false;
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
+        public virtual int CollapseLevel { get; set; } = 0;
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
@@ -747,9 +748,6 @@ namespace Tommy
                                 latestComment.Length = 0;
                                 continue;
                             }
-
-                            // Consume the extra closing table symbol
-                            ConsumeChar();
                         }
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
@@ -1317,7 +1315,6 @@ namespace Tommy
                         return null;
                     }
 
-
                     if (!InsertNode(currentValue, result, keyParts))
                         return null;
                     keyParts.Clear();
@@ -1593,10 +1590,7 @@ namespace Tommy
                     }
                     else
                     {
-                        currentNode = new TomlTable
-                        {
-                            IsInline = true
-                        };
+                        currentNode = new TomlTable();
                         latestNode[subkey] = currentNode;
                     }
 
@@ -1607,6 +1601,7 @@ namespace Tommy
                 return AddError($"The key {".".Join(path)} is already defined!");
 
             latestNode[path[path.Count - 1]] = node;
+            node.CollapseLevel = path.Count - 1;
 
             return true;
         }
