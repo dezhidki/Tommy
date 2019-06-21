@@ -589,9 +589,9 @@ namespace Tommy
             reader?.Dispose();
         }
 
-
         public TomlTable Parse()
         {
+            line = col = 0;
             var rootNode = new TomlTable();
             var currentNode = rootNode;
             currentState = ParseState.None;
@@ -629,6 +629,7 @@ namespace Tommy
                         // Consume the comment symbol and buffer the whole comment line
                         reader.Read();
                         latestComment.AppendLine(reader.ReadLine()?.Trim());
+                        AdvanceLine(0);
                         continue;
                     }
 
@@ -649,7 +650,7 @@ namespace Tommy
 
                 if (currentState == ParseState.KeyValuePair)
                 {
-                    var keyValuePair = ReadKeyValuePair(reader, keyParts);
+                    var keyValuePair = ReadKeyValuePair(keyParts);
                     keyValuePair.Comment = latestComment.ToString().TrimEnd();
                     InsertNode(keyValuePair, currentNode, keyParts);
                     latestComment.Length = 0;
@@ -666,11 +667,11 @@ namespace Tommy
                         if (c == TomlSyntax.TABLE_START_SYMBOL)
                         {
                             // Consume the character
-                            reader.Read();
+                            ConsumeChar();
                             arrayTable = true;
                         }
 
-                        ReadKeyName(reader, ref keyParts, TomlSyntax.TABLE_END_SYMBOL, true);
+                        ReadKeyName(ref keyParts, TomlSyntax.TABLE_END_SYMBOL, true);
                         if (keyParts.Count == 0) throw new TomlParseException("Table name is emtpy.", currentState);
 
                         continue;
@@ -680,12 +681,15 @@ namespace Tommy
                     {
                         if (arrayTable)
                         {
-                            if (reader.Peek() < 0 || (char)reader.Peek() != TomlSyntax.TABLE_END_SYMBOL)
+                            // Consume the ending bracket so we can peek the next character
+                            ConsumeChar();
+                            var nextChar = reader.Peek();
+                            if (nextChar < 0 || (char) nextChar != TomlSyntax.TABLE_END_SYMBOL)
                                 throw new
                                     TomlParseException($"Array table {".".Join(keyParts)} has only one closing bracket.",
                                                        currentState);
                             // Consume the extra closing table symbol
-                            reader.Read();
+                            ConsumeChar();
                         }
 
                         currentNode = CreateTable(rootNode, keyParts, arrayTable);
@@ -709,12 +713,14 @@ namespace Tommy
                     if (c == TomlSyntax.COMMENT_SYMBOL || c == TomlSyntax.NEWLINE_CHARACTER)
                     {
                         currentState = ParseState.None;
+                        AdvanceLine();
+
                         if (c == TomlSyntax.COMMENT_SYMBOL)
                         {
+                            col++;
                             reader.ReadLine();
                             continue;
                         }
-
                         goto consume_character;
                     }
 
@@ -723,12 +729,25 @@ namespace Tommy
 
                 consume_character:
                 reader.Read();
+                col++;
             }
 
             if (currentState != ParseState.None && currentState != ParseState.SkipToNextLine)
                 throw new TomlParseException("Unexpected end of file!", currentState);
 
             return rootNode;
+        }
+
+        private void AdvanceLine(int startCol = -1)
+        {
+            line++;
+            col = startCol;
+        }
+
+        private int ConsumeChar()
+        {
+            col++;
+            return reader.Read();
         }
 
         #region Key-Value pair parsing
@@ -743,7 +762,7 @@ namespace Tommy
          * ^                           ^
          */
 
-        private static TomlNode ReadKeyValuePair(TextReader reader, List<string> keyParts)
+        private TomlNode ReadKeyValuePair(List<string> keyParts)
         {
             int cur;
             while ((cur = reader.Peek()) >= 0)
@@ -756,20 +775,20 @@ namespace Tommy
                         throw new TomlParseException("Encountered extra characters in key definition!",
                                                      ParseState.KeyValuePair);
 
-                    ReadKeyName(reader, ref keyParts, TomlSyntax.KEY_VALUE_SEPARATOR);
+                    ReadKeyName(ref keyParts, TomlSyntax.KEY_VALUE_SEPARATOR);
                     continue;
                 }
 
                 if (TomlSyntax.IsWhiteSpace(c))
                 {
-                    reader.Read();
+                    ConsumeChar();
                     continue;
                 }
 
                 if (c == TomlSyntax.KEY_VALUE_SEPARATOR)
                 {
-                    reader.Read();
-                    return ReadValue(reader);
+                    ConsumeChar();
+                    return ReadValue();
                 }
 
                 throw new TomlParseException($"Unexpected character \"{c}\" in key name.", ParseState.KeyValuePair);
@@ -788,7 +807,7 @@ namespace Tommy
          * ^                 ^
          */
 
-        private static TomlNode ReadValue(TextReader reader, bool skipNewlines = false)
+        private TomlNode ReadValue(bool skipNewlines = false)
         {
             int cur;
             while ((cur = reader.Peek()) >= 0)
@@ -797,7 +816,7 @@ namespace Tommy
 
                 if (TomlSyntax.IsWhiteSpace(c))
                 {
-                    reader.Read();
+                    ConsumeChar();
                     continue;
                 }
 
@@ -809,6 +828,7 @@ namespace Tommy
                     if (skipNewlines)
                     {
                         reader.Read();
+                        AdvanceLine(0);
                         continue;
                     }
 
@@ -818,10 +838,10 @@ namespace Tommy
 
                 if (TomlSyntax.IsQuoted(c))
                 {
-                    var isMultiline = IsTripleQuote(c, reader, out var excess);
+                    var isMultiline = IsTripleQuote(c, out var excess);
                     var value = isMultiline
-                        ? ReadQuotedValueMultiLine(c, reader)
-                        : ReadQuotedValueSingleLine(c, reader, excess);
+                        ? ReadQuotedValueMultiLine(c)
+                        : ReadQuotedValueSingleLine(c, excess);
 
                     return new TomlString
                     {
@@ -831,11 +851,11 @@ namespace Tommy
                     };
                 }
 
-                if (c == TomlSyntax.INLINE_TABLE_START_SYMBOL) return ReadInlineTable(reader);
+                if (c == TomlSyntax.INLINE_TABLE_START_SYMBOL) return ReadInlineTable();
 
-                if (c == TomlSyntax.ARRAY_START_SYMBOL) return ReadArray(reader);
+                if (c == TomlSyntax.ARRAY_START_SYMBOL) return ReadArray();
 
-                return ReadTomlValue(reader);
+                return ReadTomlValue();
             }
 
             return null;
@@ -855,7 +875,7 @@ namespace Tommy
          *  ^                             ^        
          */
 
-        private static void ReadKeyName(TextReader reader, ref List<string> parts, char until, bool skipWhitespace = false)
+        private void ReadKeyName(ref List<string> parts, char until, bool skipWhitespace = false)
         {
             var buffer = new StringBuilder();
             var quoted = false;
@@ -904,7 +924,8 @@ namespace Tommy
                                                      ParseState.KeyValuePair);
 
                     // Consume the quote character and read the key name
-                    buffer.Append((string) ReadQuotedValueSingleLine((char)reader.Read(), reader));
+                    col++;
+                    buffer.Append(ReadQuotedValueSingleLine((char)reader.Read()));
                     quoted = true;
                     continue;
                 }
@@ -920,6 +941,7 @@ namespace Tommy
 
                 consume_character:
                 reader.Read();
+                col++;
             }
 
             if (buffer.Length == 0)
@@ -929,9 +951,9 @@ namespace Tommy
             parts.Add(buffer.ToString());
         }
 
-        #endregion
+#endregion
 
-        #region Non-string value parsing
+#region Non-string value parsing
 
         /**
          * Reads the whole raw value until the first non-value character is encountered.
@@ -942,7 +964,7 @@ namespace Tommy
          * ^                    ^
          */
 
-        private static string ReadRawValue(TextReader reader)
+        private string ReadRawValue()
         {
             var result = new StringBuilder();
 
@@ -955,7 +977,7 @@ namespace Tommy
 
                 result.Append(c);
 
-                reader.Read();
+                ConsumeChar();
             }
 
             // Replace trim with manual space counting?
@@ -972,23 +994,23 @@ namespace Tommy
          * ^                                                  ^  
          */
 
-        private static TomlNode ReadTomlValue(TextReader reader)
+        private TomlNode ReadTomlValue()
         {
-            var value = ReadRawValue(reader);
+            var value = ReadRawValue();
 
-            if (TomlSyntax.IsBoolean(value)) return Boolean.Parse(value);
+            if (TomlSyntax.IsBoolean(value)) return bool.Parse(value);
 
-            if (TomlSyntax.IsNaN(value)) return Double.NaN;
+            if (TomlSyntax.IsNaN(value)) return double.NaN;
 
-            if (TomlSyntax.IsPosInf(value)) return Double.PositiveInfinity;
+            if (TomlSyntax.IsPosInf(value)) return double.PositiveInfinity;
 
-            if (TomlSyntax.IsNegInf(value)) return Double.NegativeInfinity;
+            if (TomlSyntax.IsNegInf(value)) return double.NegativeInfinity;
 
             if (TomlSyntax.IsInteger(value))
-                return Int64.Parse(value.RemoveAll(TomlSyntax.INT_NUMBER_SEPARATOR), CultureInfo.InvariantCulture);
+                return long.Parse(value.RemoveAll(TomlSyntax.INT_NUMBER_SEPARATOR), CultureInfo.InvariantCulture);
 
             if (TomlSyntax.IsFloat(value))
-                return Double.Parse(value.RemoveAll(TomlSyntax.INT_NUMBER_SEPARATOR), CultureInfo.InvariantCulture);
+                return double.Parse(value.RemoveAll(TomlSyntax.INT_NUMBER_SEPARATOR), CultureInfo.InvariantCulture);
 
             if (TomlSyntax.IsIntegerWithBase(value, out var numberBase))
                 return new TomlInteger
@@ -1057,10 +1079,10 @@ namespace Tommy
          * ^                        ^
          */
 
-        private static TomlArray ReadArray(TextReader reader)
+        private TomlArray ReadArray()
         {
             // Consume the start of array character
-            reader.Read();
+            ConsumeChar();
 
             var result = new TomlArray();
 
@@ -1073,17 +1095,23 @@ namespace Tommy
 
                 if (c == TomlSyntax.ARRAY_END_SYMBOL)
                 {
-                    reader.Read();
+                    ConsumeChar();
                     break;
                 }
 
                 if (c == TomlSyntax.COMMENT_SYMBOL)
                 {
                     reader.ReadLine();
+                    AdvanceLine(0);
                     continue;
                 }
 
-                if (TomlSyntax.IsWhiteSpace(c) || TomlSyntax.IsNewLine(c)) goto consume_character;
+                if (TomlSyntax.IsWhiteSpace(c) || TomlSyntax.IsNewLine(c))
+                {
+                    if(TomlSyntax.IsLineBreak(c))
+                        AdvanceLine();
+                    goto consume_character;
+                }
 
                 if (c == TomlSyntax.ITEM_SEPARATOR)
                 {
@@ -1096,7 +1124,7 @@ namespace Tommy
                     goto consume_character;
                 }
 
-                currentValue = ReadValue(reader, true);
+                currentValue = ReadValue(true);
 
                 if (result.ChildrenCount != 0 && result[0].GetType() != currentValue.GetType())
                     throw new TomlParseException("Arrays cannot have mixed types!", ParseState.KeyValuePair);
@@ -1104,7 +1132,7 @@ namespace Tommy
                 continue;
 
                 consume_character:
-                reader.Read();
+                ConsumeChar();
             }
 
             if (currentValue != null) result.Add(currentValue);
@@ -1121,9 +1149,9 @@ namespace Tommy
          * ^                                                            ^
          */
 
-        private static TomlNode ReadInlineTable(TextReader reader)
+        private TomlNode ReadInlineTable()
         {
-            reader.Read();
+            ConsumeChar();
 
             var result = new TomlTable
             {
@@ -1141,7 +1169,7 @@ namespace Tommy
 
                 if (c == TomlSyntax.INLINE_TABLE_END_SYMBOL)
                 {
-                    reader.Read();
+                    ConsumeChar();
                     break;
                 }
 
@@ -1152,7 +1180,8 @@ namespace Tommy
                     throw new TomlParseException("Inline tables are only allowed to be on single line",
                                                  ParseState.Table);
 
-                if (TomlSyntax.IsWhiteSpace(c)) goto consume_character;
+                if (TomlSyntax.IsWhiteSpace(c))
+                    goto consume_character;
 
                 if (c == TomlSyntax.ITEM_SEPARATOR)
                 {
@@ -1166,11 +1195,11 @@ namespace Tommy
                     goto consume_character;
                 }
 
-                currentValue = ReadKeyValuePair(reader, keyParts);
+                currentValue = ReadKeyValuePair(keyParts);
                 continue;
 
                 consume_character:
-                reader.Read();
+                ConsumeChar();
             }
 
             if (currentValue != null) InsertNode(currentValue, result, keyParts);
@@ -1178,9 +1207,9 @@ namespace Tommy
             return result;
         }
 
-        #endregion
+#endregion
 
-        #region String parsing
+#region String parsing
 
         /**
          * Checks if the string value a multiline string (i.e. a triple quoted string).
@@ -1200,14 +1229,13 @@ namespace Tommy
          * ""  ==>  ""        (returns the extra `"` through the `excess` variable)
          * ^          ^
          */
-
-        private static bool IsTripleQuote(char quote, TextReader reader, out char excess)
+        private bool IsTripleQuote(char quote, out char excess)
         {
             // Copypasta, but it's faster...
 
             int cur;
             // Consume the first quote
-            reader.Read();
+            ConsumeChar();
 
             if ((cur = reader.Peek()) < 0)
                 throw new TomlParseException("Unexpected end of file!", ParseState.KeyValuePair);
@@ -1219,12 +1247,12 @@ namespace Tommy
             }
 
             // Consume the second quote
-            excess = (char)reader.Read();
+            excess = (char)ConsumeChar();
 
             if ((cur = reader.Peek()) < 0 || (char)cur != quote) return false;
 
             // Consume the final quote
-            reader.Read();
+            ConsumeChar();
 
             excess = '\0';
             return true;
@@ -1275,7 +1303,7 @@ namespace Tommy
          *  ^                 ^
          */
 
-        private static string ReadQuotedValueSingleLine(char quote, TextReader reader, char initialData = '\0')
+        private string ReadQuotedValueSingleLine(char quote, char initialData = '\0')
         {
             var isNonLiteral = quote == TomlSyntax.BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
@@ -1289,6 +1317,8 @@ namespace Tommy
             int cur;
             while ((cur = reader.Read()) >= 0)
             {
+                // Consume the character
+                col++;
                 var c = (char)cur;
                 if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, reader.Peek(), sb, ref escaped)) break;
             }
@@ -1306,7 +1336,7 @@ namespace Tommy
          *    ^                       ^
          */
 
-        private static string ReadQuotedValueMultiLine(char quote, TextReader reader)
+        private string ReadQuotedValueMultiLine(char quote)
         {
             var isBasic = quote == TomlSyntax.BASIC_STRING_SYMBOL;
             var sb = new StringBuilder();
@@ -1317,7 +1347,7 @@ namespace Tommy
             var first = true;
 
             int cur;
-            while ((cur = reader.Read()) >= 0)
+            while ((cur = ConsumeChar()) >= 0)
             {
                 var c = (char)cur;
 
@@ -1327,7 +1357,11 @@ namespace Tommy
                 // Trim the first newline
                 if (first && TomlSyntax.IsNewLine(c))
                 {
-                    if (c != TomlSyntax.NEWLINE_CARRIAGE_RETURN_CHARACTER) first = false;
+                    if (!TomlSyntax.IsLineBreak(c))
+                        first = false;
+                    else
+                        AdvanceLine();
+
                     continue;
                 }
 
@@ -1346,7 +1380,12 @@ namespace Tommy
                 // If we are currently skipping empty spaces, skip
                 if (skipWhitespace)
                 {
-                    if (TomlSyntax.IsEmptySpace(c)) continue;
+                    if (TomlSyntax.IsEmptySpace(c))
+                    {
+                        if(TomlSyntax.IsLineBreak(c))
+                            AdvanceLine();
+                        continue;
+                    }
                     skipWhitespace = false;
                 }
 
@@ -1386,9 +1425,9 @@ namespace Tommy
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
 
-        #endregion
+#endregion
 
-        #region Node creation
+#region Node creation
 
         private static void InsertNode(TomlNode node, TomlNode root, List<string> path)
         {
@@ -1505,10 +1544,10 @@ namespace Tommy
             return result;
         }
 
-        #endregion
+#endregion
     }
 
-    #endregion
+#endregion
 
     public static class TOML
     {
@@ -1521,7 +1560,7 @@ namespace Tommy
         }
     }
 
-    #region Exception Types
+#region Exception Types
 
     public class TomlException : Exception
     {
@@ -1539,13 +1578,13 @@ namespace Tommy
         public TomlFormatException(string message) : base(message) { }
     }
 
-    #endregion
+#endregion
 
-    #region Parse utilities
+#region Parse utilities
 
     static class TomlSyntax
     {
-        #region Type Patterns
+#region Type Patterns
 
         public const string TRUE_VALUE = "true";
         public const string FALSE_VALUE = "false";
@@ -1653,9 +1692,9 @@ namespace Tommy
             "HH':'mm':'ss'.'fffff", "HH':'mm':'ss'.'ffffff", "HH':'mm':'ss'.'fffffff"
         };
 
-        #endregion
+#endregion
 
-        #region Character definitions
+#region Character definitions
 
         public const char ARRAY_END_SYMBOL = ']';
         public const char ITEM_SEPARATOR = ',';
@@ -1683,6 +1722,8 @@ namespace Tommy
 
         public static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
 
+        public static bool IsLineBreak(char c) => c == NEWLINE_CHARACTER;
+
         public static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
 
         public static bool IsBareKey(char c) =>
@@ -1693,7 +1734,7 @@ namespace Tommy
         public static bool IsValueSeparator(char c) =>
             c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
 
-        #endregion
+#endregion
     }
 
     static class StringUtils
@@ -1869,5 +1910,5 @@ namespace Tommy
         }
     }
 
-    #endregion
+#endregion
 }
