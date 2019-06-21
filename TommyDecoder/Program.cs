@@ -14,7 +14,7 @@ namespace TommyDecoder
 
             using (var sr = new StringReader(input))
             {
-                var node = TOML.Parse(sr);
+                var node = TOMLParser.Parse(sr);
                 var obj = new JSONObject();
                 Traverse(obj, node);
                 Console.WriteLine(obj.ToString());
