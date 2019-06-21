@@ -438,11 +438,20 @@ namespace Tommy
             {
                 sb.Append(' ');
                 foreach (var child in RawTable)
-                    sb.Append(child.Key)
+                    sb.Append(child.Key.AsKey())
                       .Append(' ')
                       .Append(TomlSyntax.KEY_VALUE_SEPARATOR)
                       .Append(' ')
                       .Append(child.Value.ToString())
+                      .Append(TomlSyntax.ITEM_SEPARATOR)
+                      .Append(' ');
+
+                foreach (var collapsedItem in CollectCollapsedItems(""))
+                    sb.Append(collapsedItem.Key)
+                      .Append(' ')
+                      .Append(TomlSyntax.KEY_VALUE_SEPARATOR)
+                      .Append(' ')
+                      .Append(collapsedItem.Value.ToString())
                       .Append(TomlSyntax.ITEM_SEPARATOR)
                       .Append(' ');
             }
@@ -459,8 +468,9 @@ namespace Tommy
                 foreach (var keyValuePair in RawTable)
                 {
                     var node = keyValuePair.Value;
+                    var key = keyValuePair.Key.AsKey();
                     if (node is TomlTable tbl)
-                        tbl.CollectCollapsedItems(prefix, nodes, level + 1);
+                        tbl.CollectCollapsedItems($"{prefix}{key}.", nodes, level + 1);
                 }
 
                 return nodes;
