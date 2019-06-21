@@ -30,7 +30,7 @@ namespace Tommy
             }
             catch (TomlParseException ex)
             {
-                rootNode = ex.ParsedNode;
+                rootNode = ex.ParsedTable;
                 errors = ex.SyntaxErrors;
                 return false;
             }
