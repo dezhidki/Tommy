@@ -262,11 +262,16 @@ namespace TommyTests
                     {
                         ["bar"] = new TomlTable
                         {
+                            CollapseLevel = 1,
                             IsInline = true,
                             ["bar"] = "Hello",
                             ["foo"] =
                             {
-                                ["baz"] = "World!"
+                                ["baz"] = new TomlString
+                                {
+                                    CollapseLevel = 1,
+                                    Value = "World!"
+                                }
                             }
                         }
                     },
@@ -472,9 +477,21 @@ because reasons'''
             {
                 ["test"] =
                 {
-                    ["str1"] = "Hello, world!",
-                    ["str2"] = "Hello, world!",
-                    ["str4"] = "Hello, world!"
+                    ["str1"] = new TomlString
+                    {
+                        CollapseLevel = 1,
+                        Value = "Hello, world!"
+                    },
+                    ["str2"] = new TomlString
+                    {
+                        CollapseLevel = 1,
+                        Value = "Hello, world!"
+                    },
+                    ["str4"] = new TomlString
+                    {
+                        CollapseLevel = 1,
+                        Value = "Hello, world!"
+                    }
                 },
                 ["test2"] =
                 {
@@ -482,7 +499,11 @@ because reasons'''
                     {
                         ["bar\\n"] =
                         {
-                            ["baz"] = "Hello, world!"
+                            ["baz"] = new TomlString
+                            {
+                                CollapseLevel = 3,
+                                Value = "Hello, world!"
+                            }
                         }
                     }
                 }

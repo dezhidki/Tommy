@@ -11,6 +11,7 @@ namespace TommyTests
         {
             Assert.AreEqual(expected.ChildrenCount, actual.ChildrenCount);
             Assert.IsInstanceOfType(actual, expected.GetType());
+            Assert.AreEqual(expected.CollapseLevel, actual.CollapseLevel);
 
             if(!ignoreComments)
                 Assert.AreEqual(expected.Comment, actual.Comment, "The comments are not the same!");
