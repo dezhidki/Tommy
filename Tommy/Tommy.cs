@@ -499,6 +499,9 @@ namespace Tommy
                 return;
             }
 
+            if(RawTable.All(n => n.Value.CollapseLevel != 0))
+                return;
+
             Comment?.AsComment(tw);
 
             if (name != null)
@@ -549,6 +552,7 @@ namespace Tommy
                 if(collapsedItem.Value is TomlArray arr && arr.IsTableArray || collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
                     throw new TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collpased, because it is not an inline value!");
 
+                tw.WriteLine();
                 var key = collapsedItem.Key;
                 collapsedItem.Value.Comment?.AsComment(tw);
                 tw.Write(key);
