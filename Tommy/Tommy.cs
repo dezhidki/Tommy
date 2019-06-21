@@ -451,6 +451,35 @@ namespace Tommy
             return sb.ToString();
         }
 
+        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix, Dictionary<string, TomlNode> nodes = null, int level = 0)
+        {
+            if (nodes == null)
+            {
+                nodes = new Dictionary<string, TomlNode>();
+                foreach (var keyValuePair in RawTable)
+                {
+                    var node = keyValuePair.Value;
+                    if (node is TomlTable tbl)
+                        tbl.CollectCollapsedItems(prefix, nodes, level + 1);
+                }
+
+                return nodes;
+            }
+
+            foreach (var keyValuePair in RawTable)
+            {
+                var node = keyValuePair.Value;
+                var key = keyValuePair.Key.AsKey();
+
+                if(node.CollapseLevel == level)
+                    nodes.Add($"{prefix}{key}", node);
+                else if (node is TomlTable tbl)
+                    tbl.CollectCollapsedItems($"{prefix}{key}.", nodes, level + 1);
+            }
+
+            return nodes;
+        }
+
         public override void ToTomlString(TextWriter tw, string name = null)
         {
             // The table is inline table
@@ -488,6 +517,10 @@ namespace Tommy
                     continue;
                 }
 
+                // If the vallue is collapsed, it belongs to the parent
+                if(child.Value.CollapseLevel != 0)
+                    continue;
+
                 if (!first) tw.WriteLine();
                 first = false;
 
@@ -501,7 +534,23 @@ namespace Tommy
                 child.Value.ToTomlString(tw, $"{namePrefix}{key}");
             }
 
-            if (sectionableItems.Count == 0) return;
+            foreach (var collapsedItem in CollectCollapsedItems(namePrefix))
+            {
+                if(collapsedItem.Value is TomlArray arr && arr.IsTableArray || collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
+                    throw new TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collpased, because it is not an inline value!");
+
+                var key = collapsedItem.Key;
+                collapsedItem.Value.Comment?.AsComment(tw);
+                tw.Write(key);
+                tw.Write(' ');
+                tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
+                tw.Write(' ');
+
+                collapsedItem.Value.ToTomlString(tw, $"{namePrefix}{key}");
+            }
+
+            if (sectionableItems.Count == 0)
+                return;
 
             tw.WriteLine();
             tw.WriteLine();
