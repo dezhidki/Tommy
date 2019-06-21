@@ -41,6 +41,7 @@
   <ItemGroup>
     <Compile Include="Tommy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TommyExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
