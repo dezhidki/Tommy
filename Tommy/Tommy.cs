@@ -1505,7 +1505,7 @@ namespace Tommy
                 // Trim the first newline
                 if (first && TomlSyntax.IsNewLine(c))
                 {
-                    if (!TomlSyntax.IsLineBreak(c))
+                    if (TomlSyntax.IsLineBreak(c))
                         first = false;
                     else
                         AdvanceLine();
