@@ -50,7 +50,7 @@ namespace Tommy
         public virtual bool IsDateTime { get; } = false;
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
-        public virtual int CollapseLevel { get; set; } = 0;
+        public virtual int CollapseLevel { get; set; }
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
@@ -460,7 +460,9 @@ namespace Tommy
             return sb.ToString();
         }
 
-        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix, Dictionary<string, TomlNode> nodes = null, int level = 0)
+        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix,
+                                                                   Dictionary<string, TomlNode> nodes = null,
+                                                                   int level = 0)
         {
             if (nodes == null)
             {
@@ -481,7 +483,7 @@ namespace Tommy
                 var node = keyValuePair.Value;
                 var key = keyValuePair.Key.AsKey();
 
-                if(node.CollapseLevel == level)
+                if (node.CollapseLevel == level)
                     nodes.Add($"{prefix}{key}", node);
                 else if (node is TomlTable tbl)
                     tbl.CollectCollapsedItems($"{prefix}{key}.", nodes, level + 1);
@@ -499,7 +501,7 @@ namespace Tommy
                 return;
             }
 
-            if(RawTable.All(n => n.Value.CollapseLevel != 0))
+            if (RawTable.All(n => n.Value.CollapseLevel != 0))
                 return;
 
             Comment?.AsComment(tw);
@@ -531,7 +533,7 @@ namespace Tommy
                 }
 
                 // If the vallue is collapsed, it belongs to the parent
-                if(child.Value.CollapseLevel != 0)
+                if (child.Value.CollapseLevel != 0)
                     continue;
 
                 if (!first) tw.WriteLine();
@@ -549,8 +551,10 @@ namespace Tommy
 
             foreach (var collapsedItem in CollectCollapsedItems(namePrefix))
             {
-                if(collapsedItem.Value is TomlArray arr && arr.IsTableArray || collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
-                    throw new TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collpased, because it is not an inline value!");
+                if (collapsedItem.Value is TomlArray arr && arr.IsTableArray ||
+                    collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
+                    throw new
+                        TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collpased, because it is not an inline value!");
 
                 tw.WriteLine();
                 var key = collapsedItem.Key;
@@ -708,7 +712,7 @@ namespace Tommy
                             firstComment = false;
                         }
 
-                        if(TomlSyntax.IsLineBreak(c))
+                        if (TomlSyntax.IsLineBreak(c))
                             AdvanceLine();
 
                         goto consume_character;
@@ -2086,7 +2090,6 @@ namespace Tommy
 
             return stringBuilder.ToString();
         }
-
 
         public static string Unescape(this string txt)
         {
