@@ -19,7 +19,11 @@ namespace TommyTests
                     ["test"] = new TomlTable
                     {
                         Comment = "This is another section table!",
-                        ["foo"] = "Value",
+                        ["foo"] = new TomlString
+                        {
+                            CollapseLevel = 1,
+                            Value = "Value"
+                        },
                         ["bar"] = new TomlInteger
                         {
                             Comment = "How many bars there are to eat",
@@ -41,7 +45,15 @@ namespace TommyTests
                     },
                     [2] = new TomlTable
                     {
-                        ["wew"] = "woomy"
+                        ["wew"] = "woomy",
+                        ["wobbly"] = new TomlTable
+                        {
+                            ["baz"] = new TomlString
+                            {
+                                CollapseLevel = 1,
+                                Value = "test"
+                            }
+                        }
                     }
                 }
             };
