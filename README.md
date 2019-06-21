@@ -17,7 +17,7 @@ To use it, simply include [Tommy.cs](Tommy/Tommy.cs) into your project and you'r
 * Basic support for parsing and saving comments.
 * Supports .NET 3.5+, Mono, .NET Core!
 * Uses C# 7.2 syntax for smaller file size.
-* Small footprint (~32 KB compiled) compared to other similar C# libraries.
+* Small footprint (~37 KB compiled) compared to other similar C# libraries.
 
 ## How to use
 
@@ -64,6 +64,44 @@ using(StreamReader reader = new StreamReader(File.OpenRead("configuration.toml")
         Console.WriteLine(node);
 }
 ```
+
+Note that `TOML.Parse` is just a shorthand for creating a `TOMLParser` object and parsing it. In essence, `TOML.Parse` is just simply a wrapper for the following code block:
+
+```csharp
+TomlTable table;
+using(TOMLParser parser = new TOMLParser(reader))
+    table = parser.Parse();
+```
+
+In some cases, you might want to write the snippet manually, since the TOML parser can contain some additional parsing options.
+
+### Catching parse errors
+
+Tommy is an optimistic parser: when it encounters a parsing error, it does not stop the parsing process right away. 
+Instead, Tommy logs all parsing errors and throws them as a single `TomlParseException`. In addition to parsing errors, 
+the exception object also contains the *partially parsed* TOML file that you can still attempt to use at your own risk.
+
+Here's an example of handling parsing errors:
+
+```csharp
+TomlTable table;
+
+try
+{
+    // Read the TOML file normally.
+    table = TOML.Parse(reader);
+} catch(TomlParseException ex) 
+{
+    // Get access to the table that was parsed with best-effort.
+    table = ex.ParsedTable;
+
+    // Handle syntax error in whatever fashion you prefer
+    foreach(TomlSyntaxException syntaxEx in ex.SyntaxErrors)
+        Console.WriteLine($"Error on {syntaxEx.Column}:{syntaxEx.Line}: {syntaxEx.Message}");
+}
+```
+
+If you do not wish to handle exceptions, you can instead use [`TommyExtensions.TryParse()`](Tommy/TommyExtensions.cs#L21).
 
 ## Generating or editing a TOML file
 
@@ -151,11 +189,64 @@ value = 10
 value = 20
 ```
 
-Some notes about the writer:
+### Collapsed values
+
+Tommy supports collapsed values (i.e. values with keys of the form `foo.bar`). For that, simply set the `CollapseLevel` property of a value node.  
+By default, the collapse level for each TOML node is `0`, which means that the node will appear under the table you define it in. 
+Setting collapse level one value higher will move the value one table higher in the hierarchy.
+
+In other words, if you define the following table:
+
+```csharp
+TomlTable table = new TomlTable {
+    ["foo"] = new TomlTable {
+        ["bar"] = new TomlTable {
+            ["baz"] = new TomlString {
+                Value = "Hello, world!"
+            }
+        }
+    }
+};
+```
+
+Will output the TOML file:
+
+```toml
+[foo.bar]
+baz = "Hello, world!"
+```
+
+Adding `CollapseLevel = 1` to `foo.bar.baz` will "collapse" the key by one level:
+
+```csharp
+TomlTable table = new TomlTable {
+    ["foo"] = new TomlTable {
+        ["bar"] = new TomlTable {
+            ["baz"] = new TomlString {
+                CollapseLevel = 1, // Here we collapse the foo.bar.baz by one level
+                Value = "Hello, world!"
+            }
+        }
+    }
+};
+```
+
+```toml
+[foo]
+bar.baz = "Hello, world!"
+```
+
+### Some notes about the writer
 
 * **The writer does not currently preserve the layout of the original document!** This is to save size and keep things simple for now.
-* Currently the writer doesn't use subkeys for values and instead writes out subtables. Thus instead of writing `foo.bar = "foo"` it will write a table `[foo]` with key `bar`.
 * The writer only uses basic strings for complex keys (i.e. no literal strings).
+
+## Optional extensions
+
+In addition to main functionality, Tommy includes *optional* extensions located in [TommyExtensions.cs](Tommy/TommyExtensions.cs). 
+The file is a collection of various functions that you might find handy, like `TOMLParser.TryParse`.
+
+To use the extensions, simply include the file in your project. The extension methods will appear in types they are defined for.
 
 ## Tests
 
