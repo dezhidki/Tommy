@@ -644,6 +644,9 @@ namespace Tommy
                             firstComment = false;
                         }
 
+                        if(TomlSyntax.IsLineBreak(c))
+                            AdvanceLine();
+
                         goto consume_character;
                     }
 
@@ -867,7 +870,7 @@ namespace Tommy
                         return null;
                     }
 
-                    if (ReadKeyName(ref keyParts, TomlSyntax.KEY_VALUE_SEPARATOR))
+                    if (!ReadKeyName(ref keyParts, TomlSyntax.KEY_VALUE_SEPARATOR))
                         return null;
 
                     continue;
