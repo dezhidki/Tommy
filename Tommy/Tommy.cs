@@ -50,7 +50,7 @@ namespace Tommy
         public virtual bool IsDateTime { get; } = false;
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
-        public virtual int CollapseLevel { get; set; }
+        public virtual int CollapseLevel { get; set; } = 0;
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
