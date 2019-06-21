@@ -446,7 +446,7 @@ namespace Tommy
                       .Append(TomlSyntax.ITEM_SEPARATOR)
                       .Append(' ');
 
-                foreach (var collapsedItem in CollectCollapsedItems(""))
+                foreach (var collapsedItem in CollectCollapsedItems())
                     sb.Append(collapsedItem.Key)
                       .Append(' ')
                       .Append(TomlSyntax.KEY_VALUE_SEPARATOR)
@@ -460,7 +460,7 @@ namespace Tommy
             return sb.ToString();
         }
 
-        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix,
+        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix = "",
                                                                    Dictionary<string, TomlNode> nodes = null,
                                                                    int level = 0)
         {
@@ -504,9 +504,13 @@ namespace Tommy
             if (RawTable.All(n => n.Value.CollapseLevel != 0))
                 return;
 
+            var hasRealValues = !RawTable.All(n => n.Value is TomlTable tbl && !tbl.IsInline);
+
+            var collapsedItems = CollectCollapsedItems();
+
             Comment?.AsComment(tw);
 
-            if (name != null)
+            if (name != null && (hasRealValues || collapsedItems.Count > 0))
             {
                 tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                 tw.Write(name);
@@ -549,7 +553,7 @@ namespace Tommy
                 child.Value.ToTomlString(tw, $"{namePrefix}{key}");
             }
 
-            foreach (var collapsedItem in CollectCollapsedItems(namePrefix))
+            foreach (var collapsedItem in collapsedItems)
             {
                 if (collapsedItem.Value is TomlArray arr && arr.IsTableArray ||
                     collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
@@ -1789,14 +1793,14 @@ namespace Tommy
 
     public class TomlParseException : Exception
     {
-        public TomlParseException(TomlNode parsed, IEnumerable<TomlSyntaxException> exceptions) :
+        public TomlParseException(TomlTable parsed, IEnumerable<TomlSyntaxException> exceptions) :
             base("TOML file contains format errors")
         {
-            ParsedNode = parsed;
+            ParsedTable = parsed;
             SyntaxErrors = exceptions;
         }
 
-        public TomlNode ParsedNode { get; }
+        public TomlTable ParsedTable { get; }
 
         public IEnumerable<TomlSyntaxException> SyntaxErrors { get; }
     }
