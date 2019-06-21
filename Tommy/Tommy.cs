@@ -581,7 +581,6 @@ namespace Tommy
 
     #endregion
 
-
     #region Parser
 
     public class TOMLParser : IDisposable

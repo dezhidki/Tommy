@@ -47,7 +47,7 @@ namespace TommyTests
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr), false);
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr), false);
             }
         }
 
@@ -129,7 +129,7 @@ namespace TommyTests
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -219,7 +219,7 @@ namespace TommyTests
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -276,7 +276,7 @@ namespace TommyTests
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -330,7 +330,7 @@ because reasons'''
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -363,7 +363,7 @@ because reasons'''
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -427,7 +427,7 @@ because reasons'''
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
 
@@ -443,7 +443,7 @@ because reasons'''
                 var fail = false;
                 try
                 {
-                    TOMLParser.Parse(sr);
+                    TOML.Parse(sr);
                 }
                 catch (Exception e)
                 {
@@ -490,7 +490,7 @@ because reasons'''
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(correctNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(correctNode, TOML.Parse(sr));
             }
         }
 
@@ -537,7 +537,7 @@ trimmed in raw strings.
 
             using (var sr = new StringReader(input))
             {
-                Assert.That.TomlNodesAreEqual(expectedNode, TOMLParser.Parse(sr));
+                Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
         }
     }
