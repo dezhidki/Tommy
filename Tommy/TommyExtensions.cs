@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace Tommy
 {
     /// <summary>
-    /// Class of various extension methods for Tommy
+    ///     Class of various extension methods for Tommy
     /// </summary>
     public static class TommyExtensions
     {
         /// <summary>
-        /// Tries to parse TOML file.
+        ///     Tries to parse TOML file.
         /// </summary>
         /// <param name="self">TOML parser to use.</param>
         /// <param name="rootNode">Parsed root node. If parsing fails, the parsed document might not contain all values.</param>
@@ -38,7 +37,7 @@ namespace Tommy
 
 
         /// <summary>
-        /// Gets node given a fully-keyed path to it.
+        ///     Gets node given a fully-keyed path to it.
         /// </summary>
         /// <param name="self">Node to start search from.</param>
         /// <param name="path">Full path to the target node. The path must follow the TOML format.</param>
@@ -46,14 +45,14 @@ namespace Tommy
         public static TomlNode FindNode(this TomlNode self, string path)
         {
             bool ProcessQuotedValueCharacter(char quote,
-                                                    bool isNonLiteral,
-                                                    char c,
-                                                    int next,
-                                                    StringBuilder sb,
-                                                    ref bool escaped)
+                                             bool isNonLiteral,
+                                             char c,
+                                             int next,
+                                             StringBuilder sb,
+                                             ref bool escaped)
             {
                 if (TomlSyntax.ShouldBeEscaped(c))
-                    throw new Exception($"The character U+{(int)c:X8} must be escaped in a string!");
+                    throw new Exception($"The character U+{(int) c:X8} must be escaped in a string!");
 
                 if (escaped)
                 {
@@ -65,7 +64,7 @@ namespace Tommy
                 if (c == quote) return true;
 
                 if (isNonLiteral && c == TomlSyntax.ESCAPE_SYMBOL)
-                    if (next >= 0 && (char)next == quote)
+                    if (next >= 0 && (char) next == quote)
                         escaped = true;
 
                 if (c == TomlSyntax.NEWLINE_CHARACTER)
@@ -89,7 +88,7 @@ namespace Tommy
                 int cur;
                 while ((cur = reader.Read()) >= 0)
                 {
-                    var c = (char)cur;
+                    var c = (char) cur;
                     if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, reader.Peek(), sb, ref escaped)) break;
                 }
 
@@ -103,7 +102,7 @@ namespace Tommy
                 int cur;
                 while ((cur = reader.Peek()) >= 0)
                 {
-                    var c = (char)cur;
+                    var c = (char) cur;
 
                     if (TomlSyntax.IsWhiteSpace(c))
                         break;
@@ -127,7 +126,7 @@ namespace Tommy
                             throw new Exception("Encountered a quote in the middle of subkey name!");
 
                         // Consume the quote character and read the key name
-                        buffer.Append(ReadQuotedValueSingleLine((char)reader.Read(), reader));
+                        buffer.Append(ReadQuotedValueSingleLine((char) reader.Read(), reader));
                         quoted = true;
                         continue;
                     }
@@ -153,8 +152,10 @@ namespace Tommy
 
             var pathParts = new List<string>();
 
-            using(var sr = new StringReader(path))
+            using (var sr = new StringReader(path))
+            {
                 ReadKeyName(sr, pathParts);
+            }
 
             var curNode = self;
 
@@ -166,6 +167,63 @@ namespace Tommy
             }
 
             return curNode;
+        }
+
+        /// <summary>
+        ///     Merges the current TOML node with another node. Useful for default values.
+        /// </summary>
+        /// <param name="self">Node to merge into.</param>
+        /// <param name="with">Node to merge.</param>
+        /// <param name="mergeNewValues">
+        ///     If true, will also merge values present in the other node that are not present in this
+        ///     node.
+        /// </param>
+        /// <returns>The node that the other node was merged into.</returns>
+        public static TomlNode MergeWith(this TomlNode self, TomlNode with, bool mergeNewValues = false)
+        {
+            switch (self)
+            {
+                case TomlTable tbl when with is TomlTable withTbl:
+                {
+                    foreach (var keyValuePair in withTbl.RawTable)
+                        if (tbl.TryGetNode(keyValuePair.Key, out var node))
+                            node.MergeWith(keyValuePair.Value, mergeNewValues);
+                        else if(mergeNewValues)
+                            tbl[keyValuePair.Key] = node;
+                }
+                    break;
+                case TomlArray arr when with is TomlArray withArr:
+                {
+                    if (arr.ChildrenCount != 0 &&
+                        withArr.ChildrenCount != 0 &&
+                        arr[0].GetType() != withArr[0].GetType())
+                        return self;
+
+                    for (var i = 0; i < withArr.RawArray.Count; i++)
+                        if (i < arr.RawArray.Count)
+                            arr.RawArray[i].MergeWith(withArr.RawArray[i], mergeNewValues);
+                        else
+                            arr.RawArray.Add(withArr.RawArray[i]);
+                }
+                    break;
+                case TomlBoolean bl when with is TomlBoolean withBl:
+                    bl.Value = withBl.Value;
+                    break;
+                case TomlDateTime dt when with is TomlDateTime withDt:
+                    dt.Value = withDt.Value;
+                    break;
+                case TomlFloat fl when with is TomlFloat withFl:
+                    fl.Value = withFl.Value;
+                    break;
+                case TomlInteger tint when with is TomlInteger withTint:
+                    tint.Value = withTint.Value;
+                    break;
+                case TomlString tstr when with is TomlString withTStr:
+                    tstr.Value = withTStr.Value;
+                    break;
+            }
+
+            return self;
         }
     }
 }
