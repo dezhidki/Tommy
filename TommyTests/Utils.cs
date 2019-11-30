@@ -17,7 +17,7 @@ namespace TommyTests
                 Assert.AreEqual(expected.Comment, actual.Comment, "The comments are not the same!");
 
             if (actual is TomlString actString && expected is TomlString expString)
-                Assert.AreEqual(expString.Value, actString.Value);
+                Assert.AreEqual(expString.Value.Replace("\r\n", "\n"), actString.Value.Replace("\r\n", "\n"));
             else if (actual is TomlBoolean actBool && expected is TomlString expBool)
                 Assert.AreEqual(expBool.Value, actBool.Value);
             else if (actual is TomlInteger actInt && expected is TomlInteger expInt)
