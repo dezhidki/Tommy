@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tommy;
 
@@ -560,6 +561,28 @@ trimmed in raw strings.
             {
                 Assert.That.TomlNodesAreEqual(expectedNode, TOML.Parse(sr));
             }
+        }
+
+        [TestMethod]
+        public void TestArrayConstruct()
+        {
+            var expectedResult = @"array = [ ""hello world"" ]";
+
+            var table = new TomlTable
+            {
+                ["array"] = new TomlArray
+                {
+                    "hello world"
+                }
+            };
+
+            var sb = new StringBuilder();
+            using (var sw = new StringWriter(sb))
+                table.ToTomlString(sw);
+
+            var actualResult = sb.ToString();
+
+            Assert.AreEqual(expectedResult, actualResult);
         }
     }
 }
