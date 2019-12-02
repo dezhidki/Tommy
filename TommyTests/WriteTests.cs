@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tommy;
 
@@ -7,6 +8,28 @@ namespace TommyTests
     [TestClass]
     public class WriteTests
     {
+        [TestMethod]
+        public void TestArrayConstruct()
+        {
+            var expectedResult = @"array = [ ""hello world"" ]";
+
+            var table = new TomlTable
+            {
+                ["array"] = new TomlArray
+                {
+                    "hello world"
+                }
+            };
+
+            var sb = new StringBuilder();
+            using (var sw = new StringWriter(sb))
+                table.ToTomlString(sw);
+
+            var actualResult = sb.ToString();
+
+            Assert.AreEqual(expectedResult, actualResult);
+        }
+
         [TestMethod]
         public void ObjectConstructTest()
         {
@@ -28,6 +51,20 @@ namespace TommyTests
                         {
                             Comment = "How many bars there are to eat",
                             Value = 10
+                        }
+                    }
+                },
+                ["inline-test"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["foo"] = 10,
+                    ["bar"] = "test",
+                    ["baz"] = new TomlTable
+                    {
+                        ["qux"] = new TomlString
+                        {
+                            CollapseLevel = 1,
+                            Value = "test"
                         }
                     }
                 },
