@@ -331,11 +331,9 @@ namespace Tommy
             sb.Append(TomlSyntax.ARRAY_START_SYMBOL);
 
             if (ChildrenCount != 0)
-            {
-                sb.Append(' ');
-                foreach (var tomlNode in RawArray)
-                    sb.Append(tomlNode.ToString()).Append(TomlSyntax.ITEM_SEPARATOR).Append(' ');
-            }
+                sb.Append(' ')
+                  .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawArray.Select(n => n.ToString())))
+                  .Append(' ');
 
             sb.Append(TomlSyntax.ARRAY_END_SYMBOL);
             return sb.ToString();
@@ -438,34 +436,29 @@ namespace Tommy
 
             if (ChildrenCount != 0)
             {
-                sb.Append(' ');
-                foreach (var child in RawTable)
-                    sb.Append(child.Key.AsKey())
-                      .Append(' ')
-                      .Append(TomlSyntax.KEY_VALUE_SEPARATOR)
-                      .Append(' ')
-                      .Append(child.Value.ToString())
-                      .Append(TomlSyntax.ITEM_SEPARATOR)
-                      .Append(' ');
+                var collapsed = CollectCollapsedItems(out var nonCollapsible);
 
-                foreach (var collapsedItem in CollectCollapsedItems())
-                    sb.Append(collapsedItem.Key)
+                sb.Append(' ');
+                sb.Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawTable.Where(n => nonCollapsible.Contains(n.Key))
+                                                                       .Select(n => $"{n.Key.AsKey()} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToString()}")));
+
+                if (collapsed.Count != 0)
+                    sb.Append(TomlSyntax.ITEM_SEPARATOR)
                       .Append(' ')
-                      .Append(TomlSyntax.KEY_VALUE_SEPARATOR)
-                      .Append(' ')
-                      .Append(collapsedItem.Value.ToString())
-                      .Append(TomlSyntax.ITEM_SEPARATOR)
-                      .Append(' ');
+                      .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(collapsed.Select(n => $"{n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToString()}")));
+
+                sb.Append(' ');
             }
 
             sb.Append(TomlSyntax.INLINE_TABLE_END_SYMBOL);
             return sb.ToString();
         }
 
-        private Dictionary<string, TomlNode> CollectCollapsedItems(string prefix = "",
+        private Dictionary<string, TomlNode> CollectCollapsedItems(out HashSet<string> nonCollapsibleItems, string prefix = "",
                                                                    Dictionary<string, TomlNode> nodes = null,
                                                                    int level = 0)
         {
+            nonCollapsibleItems = new HashSet<string>();
             if (nodes == null)
             {
                 nodes = new Dictionary<string, TomlNode>();
@@ -474,7 +467,13 @@ namespace Tommy
                     var node = keyValuePair.Value;
                     var key = keyValuePair.Key.AsKey();
                     if (node is TomlTable tbl)
-                        tbl.CollectCollapsedItems($"{prefix}{key}.", nodes, level + 1);
+                    {
+                        tbl.CollectCollapsedItems(out var nonCollapsible, $"{prefix}{key}.", nodes, level + 1);
+                        if (nonCollapsible.Count != 0)
+                            nonCollapsibleItems.Add(key);
+                    }
+                    else
+                        nonCollapsibleItems.Add(key);
                 }
 
                 return nodes;
@@ -488,7 +487,13 @@ namespace Tommy
                 if (node.CollapseLevel == level)
                     nodes.Add($"{prefix}{key}", node);
                 else if (node is TomlTable tbl)
-                    tbl.CollectCollapsedItems($"{prefix}{key}.", nodes, level + 1);
+                {
+                    tbl.CollectCollapsedItems(out var nonCollapsible, $"{prefix}{key}.", nodes, level + 1);
+                    if (nonCollapsible.Count != 0)
+                        nonCollapsibleItems.Add(key);
+                }
+                else
+                    nonCollapsibleItems.Add(key);
             }
 
             return nodes;
@@ -508,7 +513,7 @@ namespace Tommy
 
             var hasRealValues = !RawTable.All(n => n.Value is TomlTable tbl && !tbl.IsInline);
 
-            var collapsedItems = CollectCollapsedItems();
+            var collapsedItems = CollectCollapsedItems(out var _);
 
             Comment?.AsComment(tw);
 
@@ -538,7 +543,7 @@ namespace Tommy
                     continue;
                 }
 
-                // If the vallue is collapsed, it belongs to the parent
+                // If the value is collapsed, it belongs to the parent
                 if (child.Value.CollapseLevel != 0)
                     continue;
 
@@ -560,7 +565,7 @@ namespace Tommy
                 if (collapsedItem.Value is TomlArray arr && arr.IsTableArray ||
                     collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
                     throw new
-                        TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collpased, because it is not an inline value!");
+                        TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collapsed, because it is not an inline value!");
 
                 tw.WriteLine();
                 var key = collapsedItem.Key;
