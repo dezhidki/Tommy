@@ -188,18 +188,20 @@ namespace Tommy
 
         public string Value { get; set; }
 
-        public override string ToString() => Value;
-
-        public override void ToTomlString(TextWriter tw, string name = null)
+        public override string ToString()
         {
             if (Value.IndexOf(TomlSyntax.LITERAL_STRING_SYMBOL) != -1 && PreferLiteral) PreferLiteral = false;
 
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
                                     IsMultiline ? 3 : 1);
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
-            tw.Write(quotes);
-            tw.Write(result);
-            tw.Write(quotes);
+
+            return $"{quotes}{result}{quotes}";
+        }
+
+        public override void ToTomlString(TextWriter tw, string name = null)
+        {
+            tw.Write(ToString());
         }
     }
 
