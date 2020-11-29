@@ -166,8 +166,8 @@ toml["value with spaces"] = new TomlString
 using(StreamWriter writer = new StreamWriter(File.OpenWrite("out.toml")))
 {
     toml.WriteTo(writer);
-	// Remember to flush the data if needed!
-	writer.Flush();
+    // Remember to flush the data if needed!
+    writer.Flush();
 }
 ```
 
