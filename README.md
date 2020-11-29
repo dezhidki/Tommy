@@ -16,8 +16,8 @@ To use it, simply include [Tommy.cs](Tommy/Tommy.cs) into your project and you'r
 * Parses TOML into a node-based structure that is similar to [SimpleJSON](https://github.com/Bunny83/SimpleJSON).
 * Basic support for parsing and saving comments.
 * Supports .NET 3.5+, Mono, .NET Core!
-* Uses C# 7.2 syntax for smaller file size.
-* Small footprint (~37 KB compiled) compared to other similar C# libraries.
+* Uses C# 8 syntax for smaller file size.
+* Small footprint (~39 KB compiled) compared to other similar C# libraries.
 
 ## How to use
 
