@@ -1970,7 +1970,7 @@ namespace Tommy
                     '\n' when escapeNewlines => @"\n",
                     '\f'                     => @"\f",
                     '\r' when escapeNewlines => @"\r",
-                    '\\'                     => @"\",
+                    '\\'                     => @"\\",
                     '\"'                     => @"\""",
                     var _ when TomlSyntax.ShouldBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
                         CodePoint(txt, ref i, c),

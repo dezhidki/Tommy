@@ -39,6 +39,12 @@ namespace TommyTests
                 {
                     Comment = "This table is used for Hello, world -commands!",
                     ["key"] = "wew",
+                    ["key2"] = "we\\\\w2",
+                    ["key3"] = new TomlString
+                        {
+                            Value = "wew\\\\w2",
+                            PreferLiteral = true,
+                        },
                     ["test"] = new TomlTable
                     {
                         Comment = "This is another section table!",
@@ -98,6 +104,7 @@ namespace TommyTests
             using (var sw = new StringWriter())
             {
                 node.WriteTo(sw);
+                sw.Flush();
 
                 string s = sw.ToString();
                 File.WriteAllText("out.toml", s);
