@@ -23,7 +23,7 @@ namespace TommyTests
 
             var sb = new StringBuilder();
             using (var sw = new StringWriter(sb))
-                table.WriteAsToml(sw);
+                table.WriteTo(sw);
 
             var actualResult = sb.ToString();
 
@@ -97,7 +97,7 @@ namespace TommyTests
 
             using (var sw = new StringWriter())
             {
-                node.WriteAsToml(sw);
+                node.WriteTo(sw);
 
                 string s = sw.ToString();
                 File.WriteAllText("out.toml", s);

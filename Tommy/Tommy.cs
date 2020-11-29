@@ -111,7 +111,7 @@ namespace Tommy
             foreach (var tomlNode in nodes) Add(tomlNode);
         }
 
-        public virtual void WriteAsToml(TextWriter tw, string name = null) => tw.WriteLine(ToInlineToml());
+        public virtual void WriteTo(TextWriter tw, string name = null) => tw.WriteLine(ToInlineToml());
 
         public virtual string ToInlineToml() => ToString();
 
@@ -317,7 +317,7 @@ namespace Tommy
             return sb.ToString();
         }
 
-        public override void WriteAsToml(TextWriter tw, string name = null)
+        public override void WriteTo(TextWriter tw, string name = null)
         {
             // If it's a normal array, write it as usual
             if (!IsTableArray)
@@ -361,7 +361,7 @@ namespace Tommy
                 first = false;
 
                 // Don't pass section name because we already specified it
-                tbl.WriteAsToml(tw);
+                tbl.WriteTo(tw);
 
                 tw.WriteLine();
             }
@@ -476,7 +476,7 @@ namespace Tommy
             return nodes;
         }
 
-        public override void WriteAsToml(TextWriter tw, string name = null)
+        public override void WriteTo(TextWriter tw, string name = null)
         {
             // The table is inline table
             if (IsInline && name != null)
@@ -534,7 +534,7 @@ namespace Tommy
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
 
-                child.Value.WriteAsToml(tw, $"{namePrefix}{key}");
+                child.Value.WriteTo(tw, $"{namePrefix}{key}");
             }
 
             foreach (var collapsedItem in collapsedItems)
@@ -552,7 +552,7 @@ namespace Tommy
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
 
-                collapsedItem.Value.WriteAsToml(tw, $"{namePrefix}{key}");
+                collapsedItem.Value.WriteTo(tw, $"{namePrefix}{key}");
             }
 
             if (sectionableItems.Count == 0)
@@ -566,7 +566,7 @@ namespace Tommy
                 if (!first) tw.WriteLine();
                 first = false;
 
-                child.Value.WriteAsToml(tw, $"{namePrefix}{child.Key}");
+                child.Value.WriteTo(tw, $"{namePrefix}{child.Key}");
             }
         }
     }
