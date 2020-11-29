@@ -44,12 +44,12 @@ namespace Tommy
         /// <returns>Found node. If no matching node is found, returns null.</returns>
         public static TomlNode FindNode(this TomlNode self, string path)
         {
-            bool ProcessQuotedValueCharacter(char quote,
-                                             bool isNonLiteral,
-                                             char c,
-                                             int next,
-                                             StringBuilder sb,
-                                             ref bool escaped)
+            static bool ProcessQuotedValueCharacter(char quote,
+                                                    bool isNonLiteral,
+                                                    char c,
+                                                    int next,
+                                                    StringBuilder sb,
+                                                    ref bool escaped)
             {
                 if (TomlSyntax.ShouldBeEscaped(c))
                     throw new Exception($"The character U+{(int) c:X8} must be escaped in a string!");
@@ -188,7 +188,7 @@ namespace Tommy
                     foreach (var keyValuePair in withTbl.RawTable)
                         if (tbl.TryGetNode(keyValuePair.Key, out var node))
                             node.MergeWith(keyValuePair.Value, mergeNewValues);
-                        else if(mergeNewValues)
+                        else if (mergeNewValues)
                             tbl[keyValuePair.Key] = node;
                 }
                     break;

@@ -5,6 +5,7 @@
     <Product>Tommy</Product>
     <Copyright>Copyright © Denis Zhidkikh 2020</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>portable</DebugType>
