@@ -111,7 +111,9 @@ namespace Tommy
             foreach (var tomlNode in nodes) Add(tomlNode);
         }
 
-        public virtual void ToTomlString(TextWriter tw, string name = null) { }
+        public virtual void WriteAsToml(TextWriter tw, string name = null) => tw.WriteLine(ToInlineToml());
+
+        public virtual string ToInlineToml() => ToString();
 
         #region Native type to TOML cast
 
@@ -164,7 +166,9 @@ namespace Tommy
 
         public string Value { get; set; }
 
-        public override string ToString()
+        public override string ToString() => Value;
+
+        public override string ToInlineToml()
         {
             if (Value.IndexOf(TomlSyntax.LITERAL_STRING_SYMBOL) != -1 && PreferLiteral) PreferLiteral = false;
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
@@ -172,8 +176,6 @@ namespace Tommy
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
             return $"{quotes}{result}{quotes}";
         }
-
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
     }
 
     public class TomlInteger : TomlNode
@@ -192,21 +194,28 @@ namespace Tommy
 
         public long Value { get; set; }
 
-        public override string ToString() => IntegerBase != Base.Decimal
-            ? $"0{TomlSyntax.BaseIdentifiers[(int) IntegerBase]}{Convert.ToString(Value, (int) IntegerBase)}"
-            : Value.ToString(CultureInfo.InvariantCulture);
+        public override string ToString() => Value.ToString();
 
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
+        public override string ToInlineToml() =>
+            IntegerBase != Base.Decimal
+                ? $"0{TomlSyntax.BaseIdentifiers[(int) IntegerBase]}{Convert.ToString(Value, (int) IntegerBase)}"
+                : Value.ToString(CultureInfo.InvariantCulture);
     }
 
-    public class TomlFloat : TomlNode
+    public class TomlFloat : TomlNode, IFormattable
     {
         public override bool IsFloat { get; } = true;
         public override bool HasValue { get; } = true;
 
         public double Value { get; set; }
 
-        public override string ToString() =>
+        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+        
+        public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
+
+        public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+
+        public override string ToInlineToml() =>
             Value switch
             {
                 var v when double.IsNaN(v)              => TomlSyntax.NAN_VALUE,
@@ -214,8 +223,6 @@ namespace Tommy
                 var v when double.IsPositiveInfinity(v) => TomlSyntax.NEG_INF_VALUE,
                 var v                                   => v.ToString("G", CultureInfo.InvariantCulture)
             };
-
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
     }
 
     public class TomlBoolean : TomlNode
@@ -225,12 +232,12 @@ namespace Tommy
 
         public bool Value { get; set; }
 
-        public override string ToString() => Value ? TomlSyntax.TRUE_VALUE : TomlSyntax.FALSE_VALUE;
-
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
+        public override string ToString() => Value.ToString();
+        
+        public override string ToInlineToml() => Value ? TomlSyntax.TRUE_VALUE : TomlSyntax.FALSE_VALUE;
     }
 
-    public class TomlDateTime : TomlNode
+    public class TomlDateTime : TomlNode, IFormattable
     {
         public override bool IsDateTime { get; } = true;
         public override bool HasValue { get; } = true;
@@ -240,7 +247,13 @@ namespace Tommy
 
         public DateTime Value { get; set; }
 
-        public override string ToString() =>
+        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+        
+        public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+        
+        public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
+
+        public override string ToInlineToml() =>
             Value switch
             {
                 var v when OnlyDate => v.ToString(TomlSyntax.LocalDateFormat),
@@ -249,8 +262,6 @@ namespace Tommy
                     v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision]),
                 var v => v.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision])
             };
-
-        public override void ToTomlString(TextWriter tw, string name = null) => tw.Write(ToString());
     }
 
     public class TomlArray : TomlNode
@@ -299,19 +310,19 @@ namespace Tommy
 
             if (ChildrenCount != 0)
                 sb.Append(' ')
-                  .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawArray.Select(n => n.ToString())))
+                  .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawArray.Select(n => n.ToInlineToml())))
                   .Append(' ');
 
             sb.Append(TomlSyntax.ARRAY_END_SYMBOL);
             return sb.ToString();
         }
 
-        public override void ToTomlString(TextWriter tw, string name = null)
+        public override void WriteAsToml(TextWriter tw, string name = null)
         {
             // If it's a normal array, write it as usual
             if (!IsTableArray)
             {
-                tw.Write(ToString());
+                tw.Write(ToInlineToml());
                 return;
             }
 
@@ -350,7 +361,7 @@ namespace Tommy
                 first = false;
 
                 // Don't pass section name because we already specified it
-                tbl.ToTomlString(tw);
+                tbl.WriteAsToml(tw);
 
                 tw.WriteLine();
             }
@@ -399,14 +410,13 @@ namespace Tommy
                 sb.Append(' ');
                 sb.Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawTable.Where(n => nonCollapsible.Contains(n.Key))
                                                                        .Select(n =>
-                                                                                   $"{n.Key.AsKey()} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value}")));
+                                                                                   $"{n.Key.AsKey()} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToInlineToml()}")));
 
                 if (collapsed.Count != 0)
                     sb.Append(TomlSyntax.ITEM_SEPARATOR)
                       .Append(' ')
                       .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(collapsed.Select(n =>
-                                                                       $"{n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value}")));
-
+                                                                       $"{n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToInlineToml()}")));
                 sb.Append(' ');
             }
 
@@ -466,12 +476,12 @@ namespace Tommy
             return nodes;
         }
 
-        public override void ToTomlString(TextWriter tw, string name = null)
+        public override void WriteAsToml(TextWriter tw, string name = null)
         {
             // The table is inline table
             if (IsInline && name != null)
             {
-                tw.Write(ToString());
+                tw.Write(ToInlineToml());
                 return;
             }
 
@@ -524,7 +534,7 @@ namespace Tommy
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
 
-                child.Value.ToTomlString(tw, $"{namePrefix}{key}");
+                child.Value.WriteAsToml(tw, $"{namePrefix}{key}");
             }
 
             foreach (var collapsedItem in collapsedItems)
@@ -542,7 +552,7 @@ namespace Tommy
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
 
-                collapsedItem.Value.ToTomlString(tw, $"{namePrefix}{key}");
+                collapsedItem.Value.WriteAsToml(tw, $"{namePrefix}{key}");
             }
 
             if (sectionableItems.Count == 0)
@@ -556,7 +566,7 @@ namespace Tommy
                 if (!first) tw.WriteLine();
                 first = false;
 
-                child.Value.ToTomlString(tw, $"{namePrefix}{child.Key}");
+                child.Value.WriteAsToml(tw, $"{namePrefix}{child.Key}");
             }
         }
     }
