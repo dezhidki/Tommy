@@ -164,7 +164,11 @@ toml["value with spaces"] = new TomlString
 // You can forcefully escape ALL Unicode characters by uncommenting the following line:
 // TOML.ForceASCII = true;
 using(StreamWriter writer = new StreamWriter(File.OpenWrite("out.toml")))
-    toml.ToTomlString(writer);
+{
+    toml.WriteTo(writer);
+	// Remember to flush the data if needed!
+	writer.Flush();
+}
 ```
 
 The above code outputs the following TOML file:
