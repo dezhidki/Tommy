@@ -58,7 +58,9 @@ namespace TommyTests
             var input = @"
             # Test of various values
 
+            str3 = ""Test\\""
             str1 = 'Hello, world!'
+            str2 = 'Test\\'
 
             int1 = 10
             int2 = +10
@@ -90,9 +92,13 @@ namespace TommyTests
             date5 = 1979-05-27
             ";
 
+            Console.WriteLine(input);
+            
             var expectedNode = new TomlTable
             {
                 ["str1"] = "Hello, world!",
+                ["str2"] = "Test\\\\",
+                ["str3"] = "Test\\",
                 ["int1"] = 10,
                 ["int2"] = +10,
                 ["int3"] = -10,

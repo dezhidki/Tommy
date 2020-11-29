@@ -1412,7 +1412,6 @@ namespace Tommy
         private bool ProcessQuotedValueCharacter(char quote,
                                                  bool isNonLiteral,
                                                  char c,
-                                                 int next,
                                                  StringBuilder sb,
                                                  ref bool escaped)
         {
@@ -1428,8 +1427,7 @@ namespace Tommy
 
             if (c == quote) return true;
             if (isNonLiteral && c == TomlSyntax.ESCAPE_SYMBOL)
-                if (next >= 0 && (char) next == quote)
-                    escaped = true;
+                escaped = true;
             if (c == TomlSyntax.NEWLINE_CHARACTER)
                 return AddError("Encountered newline in single line string!");
 
@@ -1455,7 +1453,7 @@ namespace Tommy
             if (initialData != '\0')
             {
                 var shouldReturn =
-                    ProcessQuotedValueCharacter(quote, isNonLiteral, initialData, reader.Peek(), sb, ref escaped);
+                    ProcessQuotedValueCharacter(quote, isNonLiteral, initialData, sb, ref escaped);
                 if (currentState == ParseState.None) return null;
                 if (shouldReturn) return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
             }
@@ -1466,7 +1464,7 @@ namespace Tommy
                 // Consume the character
                 col++;
                 var c = (char) cur;
-                if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, reader.Peek(), sb, ref escaped))
+                if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, sb, ref escaped))
                 {
                     if (currentState == ParseState.None) return null;
                     break;
