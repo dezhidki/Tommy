@@ -3,7 +3,7 @@
 </p>
 
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/dezhidki/Tommy?style=flat-square)
-![Nuget](https://img.shields.io/nuget/dt/Tommy?label=NuGet&style=flat-square)
+[![Nuget](https://img.shields.io/nuget/dt/Tommy?label=NuGet&style=flat-square)](https://www.nuget.org/packages/Tommy)
 
 # Tommy
 
