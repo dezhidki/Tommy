@@ -2,7 +2,7 @@
     <img src="logos/tommy_logo.png" height="200" />
 </p>
 
-![Nuget](https://img.shields.io/nuget/dt/Tommy?style=flat-square)
+![Nuget](https://img.shields.io/nuget/dt/Tommy?label=NuGet&style=flat-square)
 
 # Tommy
 
