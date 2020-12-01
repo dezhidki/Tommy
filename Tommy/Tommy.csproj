@@ -1,16 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net35</TargetFramework>
-    <AssemblyTitle>Tommy</AssemblyTitle>
-    <Product>Tommy</Product>
-    <Copyright>Copyright © Denis Zhidkikh 2020</Copyright>
-    <OutputPath>bin\$(Configuration)\</OutputPath>
-    <LangVersion>8</LangVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugType>portable</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFrameworks>net35;netstandard2</TargetFrameworks>
+        <AssemblyTitle>Tommy</AssemblyTitle>
+        <Product>Tommy</Product>
+        <Copyright>Copyright © Denis Zhidkikh 2020</Copyright>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+        <LangVersion>8</LangVersion>
+        <PackageId>Tommy</PackageId>
+        <Version>2.0.0</Version>
+        <Authors>Denis Zhidkikh</Authors>
+        <PackageTags>TOML parser writer simple</PackageTags>
+        <Description>
+            A simple TOML parser and writer inspired by SimpleJSON.
+            Provides minimal and simple API for parsing and writing TOML files.
+            Compliant with TOML 0.5.0 format spec.
+        </Description>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.2.0"/>
+    </ItemGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <DebugType>portable</DebugType>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <DebugType>none</DebugType>
+    </PropertyGroup>
 </Project>
