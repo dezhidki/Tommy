@@ -15,10 +15,21 @@
             Provides minimal and simple API for parsing and writing TOML files.
             Compliant with TOML 0.5.0 format spec.
         </Description>
+        <PackageIcon>tommy_logo_icon.png</PackageIcon>
+        <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.2.0"/>
+        <None Include="..\LICENSE" Pack="true" PackagePath="" />
+        <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.2.0" >
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <DebugType>portable</DebugType>
