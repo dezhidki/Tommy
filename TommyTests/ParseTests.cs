@@ -457,7 +457,7 @@ because reasons'''
                 {
                     TOML.Parse(sr);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     fail = true;
                 }
