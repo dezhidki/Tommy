@@ -26,7 +26,7 @@
         <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.2.0" >
+        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.8.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
