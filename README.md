@@ -2,12 +2,16 @@
     <img src="logos/tommy_logo.png" height="200" />
 </p>
 
+![Nuget](https://img.shields.io/nuget/dt/Tommy?style=flat-square)
+
 # Tommy
 
 Tommy is a single-file TOML reader and writer for C#.  
 This library is meant for small, cross-platform projects that want support the most .NET versions possible.
 
 To use it, simply include [Tommy.cs](Tommy/Tommy.cs) into your project and you're done!
+
+Alternatively, you can obtain the prebuilt package from [NuGet](https://www.nuget.org/packages/Tommy)!
 
 ## Features
 
