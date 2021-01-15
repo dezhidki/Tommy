@@ -1,18 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
     <PropertyGroup>
+        <PackageId>Tommy.Extensions</PackageId>
+        <AssemblyTitle>Tommy.Extensions</AssemblyTitle>
+        <Product>Tommy.Extensions</Product>
         <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
-        <AssemblyTitle>Tommy</AssemblyTitle>
-        <Product>Tommy</Product>
-        <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
         <LangVersion>9</LangVersion>
-        <PackageId>Tommy</PackageId>
+        <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
         <Version>2.0.0</Version>
         <Authors>Denis Zhidkikh</Authors>
-        <PackageTags>TOML,parser,writer,simple</PackageTags>
+        <PackageTags>TOML,parser,writer,simple,extension</PackageTags>
         <Description>
-            A simple TOML parser and writer inspired by SimpleJSON.
-            Provides minimal and simple API for parsing and writing TOML files.
-            Compliant with TOML 0.5.0 format spec.
+            Extensions for Tommy to allow higher level access to TOML parser and writer.
         </Description>
         <PackageIcon>tommy_logo_icon.png</PackageIcon>
         <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
@@ -21,20 +20,21 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageProjectUrl>https://github.com/dezhidki/Tommy</PackageProjectUrl>
     </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Tommy\Tommy.csproj" />
+    </ItemGroup>
+
     <ItemGroup>
         <None Include="..\LICENSE" Pack="true" PackagePath="" />
         <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
     </ItemGroup>
+
     <ItemGroup>
       <PackageReference Include="jnm2.ReferenceAssemblies.net35" Version="1.0.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
     </ItemGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <DebugType>portable</DebugType>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <DebugType>none</DebugType>
-    </PropertyGroup>
+
 </Project>
