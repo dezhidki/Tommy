@@ -488,7 +488,7 @@ namespace Tommy
             if (RawTable.All(n => n.Value.CollapseLevel != 0))
                 return;
 
-            var hasRealValues = !RawTable.All(n => n.Value is TomlTable tbl && !tbl.IsInline);
+            var hasRealValues = !RawTable.All(n => n.Value is TomlTable { IsInline: false });
 
             var collapsedItems = CollectCollapsedItems(out var _);
 
@@ -1779,26 +1779,25 @@ namespace Tommy
          * A pattern to verify the integer value according to the TOML specification.
          */
         public static readonly Regex IntegerPattern =
-            new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
+            new(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
 
         /**
          * A pattern to verify a special 0x, 0o and 0b forms of an integer according to the TOML specification.
          */
         public static readonly Regex BasedIntegerPattern =
-            new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /**
          * A pattern to verify the float value according to the TOML specification.
          */
         public static readonly Regex FloatPattern =
-            new
-                Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
-                      RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
+                RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /**
          * A helper dictionary to map TOML base codes into the radii.
          */
-        public static readonly Dictionary<string, int> IntegerBases = new Dictionary<string, int>
+        public static readonly Dictionary<string, int> IntegerBases = new()
         {
             ["x"] = 16,
             ["o"] = 8,
@@ -1808,7 +1807,7 @@ namespace Tommy
         /**
          * A helper dictionary to map non-decimal bases to their TOML identifiers
          */
-        public static readonly Dictionary<int, string> BaseIdentifiers = new Dictionary<int, string>
+        public static readonly Dictionary<int, string> BaseIdentifiers = new()
         {
             [2] = "b",
             [8] = "o",
