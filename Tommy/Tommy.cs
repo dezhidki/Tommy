@@ -760,7 +760,7 @@ namespace Tommy
                             arrayTable = true;
                         }
 
-                        if (!ReadKeyName(ref keyParts, TomlSyntax.TABLE_END_SYMBOL, true))
+                        if (!ReadKeyName(ref keyParts, TomlSyntax.TABLE_END_SYMBOL))
                         {
                             keyParts.Clear();
                             continue;
@@ -1020,7 +1020,7 @@ namespace Tommy
          * [ foo . bar ] ==>  [ foo . bar ]     (`skipWhitespace = true`, `until = ']'`)
          * ^                             ^
          */
-        private bool ReadKeyName(ref List<string> parts, char until, bool skipWhitespace = false)
+        private bool ReadKeyName(ref List<string> parts, char until)
         {
             var buffer = new StringBuilder();
             var quoted = false;
@@ -1034,15 +1034,10 @@ namespace Tommy
                 if (c == until) break;
 
                 if (TomlSyntax.IsWhiteSpace(c))
-                    if (skipWhitespace)
-                    {
-                        prevWasSpace = true;
-                        goto consume_character;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                {
+                    prevWasSpace = true;
+                    goto consume_character;
+                }
 
                 if (buffer.Length == 0) prevWasSpace = false;
 
