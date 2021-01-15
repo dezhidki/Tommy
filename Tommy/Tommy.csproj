@@ -4,8 +4,7 @@
         <AssemblyTitle>Tommy</AssemblyTitle>
         <Product>Tommy</Product>
         <Copyright>Copyright © 2020 Denis Zhidkikh</Copyright>
-        <OutputPath>bin\$(Configuration)\</OutputPath>
-        <LangVersion>8</LangVersion>
+        <LangVersion>9</LangVersion>
         <PackageId>Tommy</PackageId>
         <Version>2.0.0</Version>
         <Authors>Denis Zhidkikh</Authors>
@@ -25,6 +24,12 @@
     <ItemGroup>
         <None Include="..\LICENSE" Pack="true" PackagePath="" />
         <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="jnm2.ReferenceAssemblies.net35" Version="1.0.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <DebugType>portable</DebugType>
