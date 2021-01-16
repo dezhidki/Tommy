@@ -12,6 +12,7 @@ namespace Tommy.Tests
         [Test]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"keys"}, Category = "Key tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"string"}, Category = "String tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"integer"}, Category = "Integer tests")]
         public void ParsePositiveTest(SuccessTest test)
         {
             TomlNode tomlNode = null;
