@@ -1554,12 +1554,26 @@ namespace Tommy
 
                 sb.Append(c);
             }
+            
+            // TOML actually allows to have five ending quotes like
+            // """"" => "" belong to the string + """ is the actual ending
+            quotesEncountered = 0;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                var c = (char) cur;
+                if (c == quote && ++quotesEncountered < 3)
+                {
+                    sb.Append(c);
+                    ConsumeChar();
+                }
+                else break;
+            }
 
-            // Remove last two quotes (third one wasn't included by default
+            // Remove last two quotes (third one wasn't included by default)
             sb.Length -= 2;
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
-
+        
         #endregion
 
         #region Node creation
