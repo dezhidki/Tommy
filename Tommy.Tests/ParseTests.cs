@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -13,8 +12,8 @@ namespace Tommy.Tests
     public class ParseTests
     {
         [Test]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] { "keys" }, Category = "Key tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] { "string" }, Category = "String tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"keys"}, Category = "Key tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"string"}, Category = "String tests")]
         public void ParsePositiveTest(SuccessTest test)
         {
             TomlNode tomlNode = null;
