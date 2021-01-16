@@ -5,8 +5,6 @@ using NUnit.Framework;
 using SimpleJSON;
 using Tommy.Tests.Util;
 
-// ReSharper disable ArrangeObjectCreationWhenTypeNotEvident
-
 namespace Tommy.Tests
 {
     public class ParseTests
