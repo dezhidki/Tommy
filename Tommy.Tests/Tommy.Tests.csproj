@@ -15,5 +15,11 @@
     <ItemGroup>
       <ProjectReference Include="..\Tommy\Tommy.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+        <Content Include="cases\**\*.toml;cases\**\*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 
 </Project>

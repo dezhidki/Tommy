@@ -4,7 +4,7 @@ namespace Tommy.Tests.Util
 {
     public static class TomlExtensions
     {
-        public static string ToJsonString(this TomlNode node)
+        public static string ToCompactJsonString(this TomlNode node)
         {
             var obj = new JSONObject();
             Traverse(obj, node);

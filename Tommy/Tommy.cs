@@ -660,7 +660,7 @@ namespace Tommy
         public TomlTable Parse()
         {
             syntaxErrors = new List<TomlSyntaxException>();
-            line = col = 0;
+            line = col = 1;
             var rootNode = new TomlTable();
             var currentNode = rootNode;
             currentState = ParseState.None;
@@ -701,7 +701,7 @@ namespace Tommy
                         // Consume the comment symbol and buffer the whole comment line
                         reader.Read();
                         latestComment.AppendLine(reader.ReadLine()?.Trim());
-                        AdvanceLine(0);
+                        AdvanceLine(1);
                         continue;
                     }
 
@@ -867,12 +867,12 @@ namespace Tommy
             syntaxErrors.Add(new TomlSyntaxException(message, currentState, line, col));
             // Skip the whole line in hope that it was only a single faulty value (and non-multiline one at that)
             reader.ReadLine();
-            AdvanceLine(0);
+            AdvanceLine(1);
             currentState = ParseState.None;
             return false;
         }
 
-        private void AdvanceLine(int startCol = -1)
+        private void AdvanceLine(int startCol = 0)
         {
             line++;
             col = startCol;
@@ -968,7 +968,7 @@ namespace Tommy
                     if (skipNewlines)
                     {
                         reader.Read();
-                        AdvanceLine(0);
+                        AdvanceLine(1);
                         continue;
                     }
 
@@ -1235,7 +1235,7 @@ namespace Tommy
                 if (c == TomlSyntax.COMMENT_SYMBOL)
                 {
                     reader.ReadLine();
-                    AdvanceLine(0);
+                    AdvanceLine(1);
                     continue;
                 }
 
