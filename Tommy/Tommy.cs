@@ -254,14 +254,14 @@ namespace Tommy
         public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
 
         public override string ToInlineToml() =>
-            Value switch
+            (Value switch
             {
                 var v when OnlyDate => v.ToString(TomlSyntax.LocalDateFormat),
                 var v when OnlyTime => v.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
                 var v when v.Kind is DateTimeKind.Local =>
                     v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision]),
                 var v => v.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision])
-            };
+            }).Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator); // Normalize
     }
 
     public class TomlArray : TomlNode
@@ -1155,7 +1155,8 @@ namespace Tommy
             };
             if (node != null) return node;
 
-            value = value.Replace("T", " ");
+            // Normalize by removing
+            value = value.Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator);
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalDateTimeFormats,
                                              DateTimeStyles.AssumeLocal,
@@ -1823,15 +1824,18 @@ namespace Tommy
             [16] = "x"
         };
 
+        public const string RFC3339EmptySeparator = " ";
+        public const string ISO861Separator = "T";
+
         /**
          * Valid date formats with timezone as per RFC3339.
          */
         public static readonly string[] RFC3339Formats =
         {
-            "yyyy'-'MM-dd HH':'mm':'ssK", "yyyy'-'MM-dd HH':'mm':'ss'.'fK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffffK"
+            "yyyy'-'MM-ddTHH':'mm':'ssK", "yyyy'-'MM-ddTHH':'mm':'ss'.'fK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffffK"
         };
 
         /**
@@ -1839,10 +1843,10 @@ namespace Tommy
          */
         public static readonly string[] RFC3339LocalDateTimeFormats =
         {
-            "yyyy'-'MM-dd HH':'mm':'ss", "yyyy'-'MM-dd HH':'mm':'ss'.'f", "yyyy'-'MM-dd HH':'mm':'ss'.'ff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fff", "yyyy'-'MM-dd HH':'mm':'ss'.'ffff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffff", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffff"
+            "yyyy'-'MM-ddTHH':'mm':'ss", "yyyy'-'MM-ddTHH':'mm':'ss'.'f", "yyyy'-'MM-ddTHH':'mm':'ss'.'ff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fff", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffff", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffff"
         };
 
         /**
