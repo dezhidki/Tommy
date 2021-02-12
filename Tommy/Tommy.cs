@@ -47,7 +47,9 @@ namespace Tommy
         public virtual bool IsString { get; } = false;
         public virtual bool IsInteger { get; } = false;
         public virtual bool IsFloat { get; } = false;
-        public virtual bool IsDateTime { get; } = false;
+        public bool IsDateTime => IsDateTimeLocal || IsDateTimeOffset;
+        public virtual bool IsDateTimeLocal { get; } = false;
+        public virtual bool IsDateTimeOffset { get; } = false;
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
         public virtual int CollapseLevel { get; set; }
@@ -57,6 +59,8 @@ namespace Tommy
         public virtual TomlInteger AsInteger => this as TomlInteger;
         public virtual TomlFloat AsFloat => this as TomlFloat;
         public virtual TomlBoolean AsBoolean => this as TomlBoolean;
+        public virtual TomlDateTimeLocal AsDateTimeLocal => this as TomlDateTimeLocal;
+        public virtual TomlDateTimeOffset AsDateTimeOffset => this as TomlDateTimeOffset;
         public virtual TomlDateTime AsDateTime => this as TomlDateTime;
         public virtual TomlArray AsArray => this as TomlArray;
 
@@ -119,15 +123,17 @@ namespace Tommy
 
         public static implicit operator TomlNode(string value) => new TomlString {Value = value};
 
-        public static implicit operator TomlNode(bool value) => new TomlBoolean { Value = value };
+        public static implicit operator TomlNode(bool value) => new TomlBoolean {Value = value};
 
-        public static implicit operator TomlNode(long value) => new TomlInteger { Value = value };
+        public static implicit operator TomlNode(long value) => new TomlInteger {Value = value};
 
-        public static implicit operator TomlNode(float value) => new TomlFloat { Value = value };
+        public static implicit operator TomlNode(float value) => new TomlFloat {Value = value};
 
-        public static implicit operator TomlNode(double value) => new TomlFloat { Value = value };
+        public static implicit operator TomlNode(double value) => new TomlFloat {Value = value};
 
-        public static implicit operator TomlNode(DateTime value) => new TomlDateTime { Value = value };
+        public static implicit operator TomlNode(DateTime value) => new TomlDateTimeLocal {Value = value};
+
+        public static implicit operator TomlNode(DateTimeOffset value) => new TomlDateTimeOffset {Value = value};
 
         public static implicit operator TomlNode(TomlNode[] nodes)
         {
@@ -152,7 +158,9 @@ namespace Tommy
 
         public static implicit operator bool(TomlNode value) => value.AsBoolean.Value;
 
-        public static implicit operator DateTime(TomlNode value) => value.AsDateTime.Value;
+        public static implicit operator DateTime(TomlNode value) => value.AsDateTimeLocal.Value;
+
+        public static implicit operator DateTimeOffset(TomlNode value) => value.AsDateTimeOffset.Value;
 
         #endregion
     }
@@ -210,7 +218,7 @@ namespace Tommy
         public double Value { get; set; }
 
         public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
-        
+
         public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
 
         public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
@@ -233,35 +241,58 @@ namespace Tommy
         public bool Value { get; set; }
 
         public override string ToString() => Value.ToString();
-        
+
         public override string ToInlineToml() => Value ? TomlSyntax.TRUE_VALUE : TomlSyntax.FALSE_VALUE;
     }
 
     public class TomlDateTime : TomlNode, IFormattable
     {
-        public override bool IsDateTime { get; } = true;
+        public int SecondsPrecision { get; set; }
         public override bool HasValue { get; } = true;
+        public virtual string ToString(string format, IFormatProvider formatProvider) => string.Empty;
+        public virtual string ToString(IFormatProvider formatProvider) => string.Empty;
+        protected virtual string ToInlineTomlInternal() => string.Empty;
+
+        public override string ToInlineToml() => ToInlineTomlInternal()
+                                                .Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator)
+                                                .Replace(TomlSyntax.ISO861ZeroZone, TomlSyntax.RFC3339ZeroZone);
+    }
+
+    public class TomlDateTimeOffset : TomlDateTime
+    {
+        public override bool IsDateTimeOffset { get; } = true;
+        public DateTimeOffset Value { get; set; }
+
+        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+        public override string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+
+        public override string ToString(string format, IFormatProvider formatProvider) =>
+            Value.ToString(format, formatProvider);
+
+        protected override string ToInlineTomlInternal() => Value.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision]);
+    }
+
+    public class TomlDateTimeLocal : TomlDateTime
+    {
+        public override bool IsDateTimeLocal { get; } = true;
         public bool OnlyDate { get; set; }
         public bool OnlyTime { get; set; }
-        public int SecondsPrecision { get; set; }
-
         public DateTime Value { get; set; }
 
         public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
-        
-        public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
-        
-        public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
+
+        public override string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+
+        public override string ToString(string format, IFormatProvider formatProvider) =>
+            Value.ToString(format, formatProvider);
 
         public override string ToInlineToml() =>
-            (Value switch
+            Value switch
             {
                 var v when OnlyDate => v.ToString(TomlSyntax.LocalDateFormat),
                 var v when OnlyTime => v.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
-                var v when v.Kind is DateTimeKind.Local =>
-                    v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision]),
-                var v => v.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision])
-            }).Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator); // Normalize
+                var v               => v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision])
+            };
     }
 
     public class TomlArray : TomlNode
@@ -488,7 +519,7 @@ namespace Tommy
             if (RawTable.All(n => n.Value.CollapseLevel != 0))
                 return;
 
-            var hasRealValues = !RawTable.All(n => n.Value is TomlTable { IsInline: false });
+            var hasRealValues = !RawTable.All(n => n.Value is TomlTable {IsInline: false});
 
             var collapsedItems = CollectCollapsedItems(out var _);
 
@@ -1155,37 +1186,38 @@ namespace Tommy
             };
             if (node != null) return node;
 
-            // Normalize by removing
+            // Normalize by removing space separator
             value = value.Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator);
+            if (StringUtils.TryParseDateTime(value,
+                                             TomlSyntax.RFC3339Formats,
+                                             DateTimeStyles.None,
+                                             DateTimeOffset.ParseExact,
+                                             out var dateTimeOffsetResult,
+                                             out var precision))
+                return new TomlDateTimeOffset
+                {
+                    Value = dateTimeOffsetResult,
+                    SecondsPrecision = precision
+                };
+
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalDateTimeFormats,
                                              DateTimeStyles.AssumeLocal,
+                                             DateTime.ParseExact,
                                              out var dateTimeResult,
-                                             out var precision))
-                return new TomlDateTime
-                {
-                    Value = dateTimeResult,
-                    SecondsPrecision = precision
-                };
-
-            if (StringUtils.TryParseDateTime(value,
-                                             TomlSyntax.RFC3339Formats,
-                                             DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
-                                             out dateTimeResult,
                                              out precision))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
                     SecondsPrecision = precision
                 };
-
 
             if (DateTime.TryParseExact(value,
                                        TomlSyntax.LocalDateFormat,
                                        CultureInfo.InvariantCulture,
                                        DateTimeStyles.AssumeLocal,
                                        out dateTimeResult))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
                     OnlyDate = true
@@ -1194,9 +1226,10 @@ namespace Tommy
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalTimeFormats,
                                              DateTimeStyles.AssumeLocal,
+                                             DateTime.ParseExact,
                                              out dateTimeResult,
                                              out precision))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
                     OnlyTime = true,
@@ -1555,7 +1588,7 @@ namespace Tommy
 
                 sb.Append(c);
             }
-            
+
             // TOML actually allows to have five ending quotes like
             // """"" => "" belong to the string + """ is the actual ending
             quotesEncountered = 0;
@@ -1574,7 +1607,7 @@ namespace Tommy
             sb.Length -= 2;
             return isBasic ? sb.ToString().Unescape() : sb.ToString();
         }
-        
+
         #endregion
 
         #region Node creation
@@ -1826,6 +1859,8 @@ namespace Tommy
 
         public const string RFC3339EmptySeparator = " ";
         public const string ISO861Separator = "T";
+        public const string ISO861ZeroZone = "+00:00";
+        public const string RFC3339ZeroZone = "Z";
 
         /**
          * Valid date formats with timezone as per RFC3339.
@@ -1930,19 +1965,27 @@ namespace Tommy
             return sb.ToString();
         }
 
-        public static bool TryParseDateTime(string s,
-                                            string[] formats,
-                                            DateTimeStyles styles,
-                                            out DateTime dateTime,
-                                            out int parsedFormat)
+        public static bool TryParseDateTime<T>(string s,
+                                               string[] formats,
+                                               DateTimeStyles styles,
+                                               Func<string, string, CultureInfo, DateTimeStyles, T> parser,
+                                               out T dateTime,
+                                               out int parsedFormat)
         {
             parsedFormat = 0;
-            dateTime = new DateTime();
-
+            dateTime = default;
             for (var i = 0; i < formats.Length; i++)
             {
                 var format = formats[i];
-                if (!DateTime.TryParseExact(s, format, CultureInfo.InvariantCulture, styles, out dateTime)) continue;
+                try
+                {
+                    dateTime = parser(s, format, CultureInfo.InvariantCulture, styles);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
                 parsedFormat = i;
                 return true;
             }

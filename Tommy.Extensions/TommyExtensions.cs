@@ -209,7 +209,10 @@ namespace Tommy.Extensions
                 case TomlBoolean bl when with is TomlBoolean withBl:
                     bl.Value = withBl.Value;
                     break;
-                case TomlDateTime dt when with is TomlDateTime withDt:
+                case TomlDateTimeLocal dt when with is TomlDateTimeLocal withDt:
+                    dt.Value = withDt.Value;
+                    break;
+                case TomlDateTimeOffset dt when with is TomlDateTimeOffset withDt:
                     dt.Value = withDt.Value;
                     break;
                 case TomlFloat fl when with is TomlFloat withFl:
