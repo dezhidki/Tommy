@@ -1189,23 +1189,11 @@ namespace Tommy
             // Normalize by removing space separator
             value = value.Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator);
             if (StringUtils.TryParseDateTime(value,
-                                             TomlSyntax.RFC3339Formats,
-                                             DateTimeStyles.None,
-                                             DateTimeOffset.ParseExact,
-                                             out var dateTimeOffsetResult,
-                                             out var precision))
-                return new TomlDateTimeOffset
-                {
-                    Value = dateTimeOffsetResult,
-                    SecondsPrecision = precision
-                };
-
-            if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalDateTimeFormats,
                                              DateTimeStyles.AssumeLocal,
                                              DateTime.ParseExact,
                                              out var dateTimeResult,
-                                             out precision))
+                                             out var precision))
                 return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
@@ -1233,6 +1221,18 @@ namespace Tommy
                 {
                     Value = dateTimeResult,
                     OnlyTime = true,
+                    SecondsPrecision = precision
+                };
+            
+            if (StringUtils.TryParseDateTime(value,
+                                             TomlSyntax.RFC3339Formats,
+                                             DateTimeStyles.None,
+                                             DateTimeOffset.ParseExact,
+                                             out var dateTimeOffsetResult,
+                                             out precision))
+                return new TomlDateTimeOffset
+                {
+                    Value = dateTimeOffsetResult,
                     SecondsPrecision = precision
                 };
 
