@@ -1,4 +1,5 @@
-﻿using SimpleJSON;
+﻿using System;
+using SimpleJSON;
 
 namespace Tommy.Tests.Util
 {
@@ -44,16 +45,7 @@ namespace Tommy.Tests.Util
                         Add(obj, nodeKey, f.Value);
                         break;
                     case TomlDateTime dt:
-                        // TODO: Might need to bring back eventually
-                        // if(dt.OnlyDate)
-                        //     obj["type"] = "date";
-                        // else if (dt.OnlyTime)
-                        //     obj["type"] = "time";
-                        // else if (dt.Value.Kind == DateTimeKind.Local)
-                        //     obj["type"] = "datetime-local";
-                        // else
-                        //     obj["type"] = "datetime";
-                        Add(obj, nodeKey, dt.ToString());
+                        Add(obj, nodeKey, dt.ToInlineToml());
                         break;
                     case TomlBoolean b:
                         Add(obj, nodeKey, b.Value);
