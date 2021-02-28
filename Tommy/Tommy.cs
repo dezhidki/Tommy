@@ -597,7 +597,7 @@ namespace Tommy
                 if (!first) tw.WriteLine();
                 first = false;
 
-                child.Value.WriteTo(tw, $"{namePrefix}{child.Key}");
+                child.Value.WriteTo(tw, $"{namePrefix}{child.Key.AsKey()}");
             }
         }
     }
