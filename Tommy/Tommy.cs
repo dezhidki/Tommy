@@ -1557,17 +1557,18 @@ namespace Tommy
                 if (isBasic && c == TomlSyntax.ESCAPE_SYMBOL)
                 {
                     var next = reader.Peek();
+                    var nc = (char) next;
                     if (next >= 0)
                     {
                         // ...and the next char is empty space, we must skip all whitespaces
-                        if (TomlSyntax.IsEmptySpace((char) next))
+                        if (TomlSyntax.IsEmptySpace(nc))
                         {
                             skipWhitespace = true;
                             continue;
                         }
 
-                        // ...and we have \", skip the character
-                        if ((char) next == quote) escaped = true;
+                        // ...and we have \" or \, skip the character
+                        if (nc == quote || nc == TomlSyntax.ESCAPE_SYMBOL) escaped = true;
                     }
                 }
 
