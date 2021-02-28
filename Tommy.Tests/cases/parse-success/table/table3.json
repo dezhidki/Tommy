@@ -2,7 +2,7 @@
     "dog": {
         "tater.man": {
             "type": {
-                "name": "pug"
+                "name": { "type": "string", "value": "pug" }
             }
         }
     }

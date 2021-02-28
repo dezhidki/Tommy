@@ -1,10 +1,18 @@
-﻿using SimpleJSON;
+﻿using System.Globalization;
+using SimpleJSON;
 
 namespace Tommy.Tests.Util
 {
     public static class TomlExtensions
     {
-        public static string ToCompactJsonString(this TomlNode node)
+        /// <summary>
+        /// Formats TOML Node to JSON Encoding format used by toml-lang/compliance
+        /// see
+        /// https://github.com/toml-lang/compliance/blob/master/docs/json-encoding.md
+        /// </summary>
+        /// <param name="node">Node to parse</param>
+        /// <returns>JSON representation of the TOML node</returns>
+        public static string ToComplianceTestJson(this TomlNode node)
         {
             var obj = new JSONObject();
             Traverse(obj, node);
@@ -35,29 +43,36 @@ namespace Tommy.Tests.Util
                 switch (node)
                 {
                     case TomlString str:
-                        Add(obj, nodeKey, str.Value);
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "string", ["value"] = str.Value });
                         break;
                     case TomlInteger i:
-                        Add(obj, nodeKey, i.Value);
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "integer", ["value"] = i.Value.ToString() });
                         break;
                     case TomlFloat f:
-                        Add(obj, nodeKey, f.Value);
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "float", ["value"] = f.ToInlineToml() });
                         break;
-                    case TomlDateTime dt:
-                        Add(obj, nodeKey, dt.ToInlineToml());
+                    case TomlDateTimeLocal dtl:
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "local " + dtl switch
+                        {
+                            var _ when dtl.OnlyDate => "date",
+                            var _ when dtl.OnlyTime => "time",
+                            var _                   => "datetime"
+                        }, ["value"] = dtl.ToInlineToml() });
+                        break;
+                    case TomlDateTimeOffset dto:
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "offset datetime", ["value"] = dto.ToInlineToml() });
                         break;
                     case TomlBoolean b:
-                        Add(obj, nodeKey, b.Value);
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "boolean", ["value"] = b.ToInlineToml() });
                         break;
                     case TomlArray arr:
-                        var jsonArray = new JSONArray();
-                        Add(obj, nodeKey, jsonArray);
+                        var tomlObj = new JSONObject {["type"] = "array", ["value"] = new JSONArray()};
+                        var jsonArray = tomlObj["value"].AsArray;
+                        Add(obj, nodeKey, tomlObj);
                         foreach (var arrValue in arr.Children)
                             Traverse(jsonArray, arrValue, isChild: true);
-
                         break;
                 }
-
                 return;
             }
 

@@ -1,15 +1,15 @@
 ﻿{
     "name": {
-        "first": "Tom",
-        "last": "Preston-Werner"
+        "first": { "type": "string", "value": "Tom" },
+        "last": { "type": "string", "value": "Preston-Werner" }
     },
     "point": {
-        "x": 1,
-        "y": 2
+        "x": { "type": "integer", "value": "1" },
+        "y": { "type": "integer", "value": "2" }
     },
     "animal": {
         "type": {
-            "name": "pug"
+            "name": { "type": "string", "value": "pug" }
         }
     }
 }

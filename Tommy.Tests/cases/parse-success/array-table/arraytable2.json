@@ -1,27 +1,36 @@
 ﻿{
-    "fruits": [
-        {
-            "name": "apple",
-            "physical": {
-                "color": "red",
-                "shape": "round"
-            },
-            "varieties": [
-                {
-                    "name": "red delicious"
+    "fruits": {
+        "type": "array",
+        "value": [
+            {
+                "name": { "type": "string", "value": "apple" },
+                "physical": {
+                    "color": { "type": "string", "value": "red"},
+                    "shape": { "type": "string", "value": "round"}
                 },
-                {
-                    "name": "granny smith"
+                "varieties": {
+                    "type": "array",
+                    "value": [
+                        {
+                            "name": { "type": "string", "value": "red delicious"}
+                        },
+                        {
+                            "name": { "type": "string", "value": "granny smith"}
+                        }
+                    ]
                 }
-            ]
-        },
-        {
-            "name": "banana",
-            "varieties": [
-                {
-                    "name": "plantain"
+            },
+            {
+                "name": { "type": "string", "value": "banana" },
+                "varieties": {
+                    "type": "array",
+                    "value": [
+                        {
+                            "name": { "type": "string", "value": "plantain"}
+                        }
+                    ]
                 }
-            ]
-        }
-    ]
+            }
+        ]
+    }
 }

@@ -1,48 +1,78 @@
 ﻿{
-    "integers": [
-        1,
-        2,
-        3
-    ],
-    "colors": [
-        "red",
-        "yellow",
-        "green"
-    ],
-    "nested_arrays_of_ints": [
-        [
-            1,
-            2
-        ],
-        [
-            3,
-            4,
-            5
+    "integers": {
+        "type": "array",
+        "value": [
+            { "type": "integer", "value": "1" },
+            { "type": "integer", "value": "2" },
+            { "type": "integer", "value": "3" }
         ]
-    ],
-    "nested_mixed_array": [
-        [
-            1,
-            2
-        ],
-        [
-            "a",
-            "b",
-            "c"
+    },
+    "colors": {
+        "type": "array",
+        "value": [
+            { "type": "string", "value": "red" },
+            { "type": "string", "value": "yellow" },
+            { "type": "string", "value": "green" }
         ]
-    ],
-    "string_array": [
-        "all",
-        "strings",
-        "are the same",
-        "type"
-    ],
-    "numbers": [
-        0.1,
-        0.2,
-        0.5,
-        1,
-        2,
-        5
-    ]
+    },
+    "nested_arrays_of_ints": {
+        "type": "array",
+        "value": [
+            {
+                "type": "array",
+                "value": [
+                    { "type": "integer", "value": "1" },
+                    { "type": "integer", "value": "2" }
+                ]
+            },
+            {
+                "type": "array",
+                "value": [
+                    { "type": "integer", "value": "3" },
+                    { "type": "integer", "value": "4" },
+                    { "type": "integer", "value": "5" }
+                ]
+            }
+        ]
+    },
+    "nested_mixed_array": {
+        "type": "array",
+        "value": [
+            {
+                "type": "array",
+                "value": [
+                    { "type": "integer", "value": "1" },
+                    { "type": "integer", "value": "2" }
+                ]
+            },
+            {
+                "type": "array",
+                "value": [
+                    { "type": "string", "value": "a" },
+                    { "type": "string", "value": "b" },
+                    { "type": "string", "value": "c" }
+                ]
+            }
+        ]
+    },
+    "string_array": {
+        "type": "array",
+        "value": [
+            { "type": "string", "value": "all" },
+            { "type": "string", "value": "strings" },
+            { "type": "string", "value": "are the same" },
+            { "type": "string", "value": "type" }
+        ]
+    },
+    "numbers": {
+        "type": "array",
+        "value": [
+            { "type": "float", "value": "0.1" },
+            { "type": "float", "value": "0.2" },
+            { "type": "float", "value": "0.5" },
+            { "type": "integer", "value": "1" },
+            { "type": "integer", "value": "2" },
+            { "type": "integer", "value": "5" }
+        ]
+    }
 }

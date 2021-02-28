@@ -1,14 +1,17 @@
 ﻿{
-    "products": [
-        {
-            "name": "Hammer",
-            "sku": 738594937
-        },
-        {},
-        {
-            "name": "Nail",
-            "sku": 284758393,
-            "color": "gray"
-        }
-    ]
+    "products": {
+        "type": "array",
+        "value": [
+            {
+                "name": { "type": "string", "value": "Hammer" },
+                "sku": { "type": "integer", "value": "738594937" }
+            },
+            {},
+            {
+                "name": { "type": "string", "value": "Nail" },
+                "sku": { "type": "integer", "value": "284758393" },
+                "color": { "type": "string", "value": "gray" }
+            }
+        ]
+    }
 }

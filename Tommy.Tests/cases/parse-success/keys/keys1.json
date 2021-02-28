@@ -1,6 +1,6 @@
 ﻿{
-    "key": "value",
-    "bare_key": "value",
-    "bare-key": "value",
-    "1234": "value"
+    "key": { "type": "string", "value": "value" },
+    "bare_key": { "type": "string", "value": "value" },
+    "bare-key": { "type": "string", "value": "value" },
+    "1234": { "type": "string", "value": "value" }
 }

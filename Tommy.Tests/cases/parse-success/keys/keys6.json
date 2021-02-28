@@ -1,12 +1,12 @@
 ﻿{
     "apple": {
-        "type": "fruit",
-        "skin": "thin",
-        "color": "red"
+        "type": { "type": "string", "value": "fruit" },
+        "skin": { "type": "string", "value": "thin" },
+        "color": { "type": "string", "value": "red" }
     },
     "orange": {
-        "type": "fruit",
-        "skin": "thick",
-        "color": "orange"
+        "type": { "type": "string", "value": "fruit" },
+        "skin": { "type": "string", "value": "thick" },
+        "color": { "type": "string", "value": "orange" }
     }
 }

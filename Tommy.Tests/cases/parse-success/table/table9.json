@@ -1,9 +1,9 @@
 ﻿{
     "fruit": {
         "apple": {
-            "color": "red",
+            "color": { "type": "string", "value": "red" },
             "taste": {
-                "sweet": true
+                "sweet": { "type": "boolean", "value": "true" }
             }
         }
     }

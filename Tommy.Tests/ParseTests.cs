@@ -36,7 +36,7 @@ namespace Tommy.Tests
                 Assert.Fail(sb.ToString());
             }
 
-            var json = tomlNode.ToCompactJsonString();
+            var json = tomlNode.ToComplianceTestJson();
             var expectedJson = JSON.Parse(test.Json).ToString(); // Normalize by making it unindented
             Assert.AreEqual(expectedJson, json);
         }

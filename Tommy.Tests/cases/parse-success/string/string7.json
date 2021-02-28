@@ -1,5 +1,5 @@
 ﻿{
-    "quot15": "Here are fifteen quotation marks: \"\"\"\"\"\"\"\"\"\"\"\"\"\"\"",
-    "apos15": "Here are fifteen apostrophes: '''''''''''''''",
-    "str": "'That,' she said, 'is still pointless.'"
+    "quot15": { "type": "string", "value": "Here are fifteen quotation marks: \"\"\"\"\"\"\"\"\"\"\"\"\"\"\"" },
+    "apos15": { "type": "string", "value": "Here are fifteen apostrophes: '''''''''''''''" },
+    "str": { "type": "string", "value": "'That,' she said, 'is still pointless.'" }
 }

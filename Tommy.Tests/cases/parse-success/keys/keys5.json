@@ -1,8 +1,8 @@
 ﻿{
     "fruit": {
         "apple": {
-            "smooth": true
+            "smooth": { "type": "boolean", "value": "true" }
         },
-        "orange": 2
+        "orange": { "type": "integer", "value": "2" }
     }
 }
