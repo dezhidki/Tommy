@@ -1438,7 +1438,7 @@ namespace Tommy
                                                  StringBuilder sb,
                                                  ref bool escaped)
         {
-            if (TomlSyntax.ShouldBeEscaped(c))
+            if (TomlSyntax.MustBeEscaped(c))
                 return AddError($"The character U+{(int) c:X8} must be escaped in a string!");
 
             if (escaped)
@@ -1518,7 +1518,7 @@ namespace Tommy
             while ((cur = ConsumeChar()) >= 0)
             {
                 var c = (char) cur;
-                if (TomlSyntax.ShouldBeEscaped(c))
+                if (TomlSyntax.MustBeEscaped(c, true))
                     throw new Exception($"The character U+{(int) c:X8} must be escaped!");
                 // Trim the first newline
                 if (first && TomlSyntax.IsNewLine(c))
@@ -1929,7 +1929,13 @@ namespace Tommy
         public static bool IsBareKey(char c) =>
             'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
 
-        public static bool ShouldBeEscaped(char c) => (c <= '\u001f' || c == '\u007f') && !IsNewLine(c);
+        public static bool MustBeEscaped(char c, bool allowNewLines = false)
+        {
+            var result = c is (>= '\u0000' and <= '\u0008') or '\u000b' or '\u000c' or (>= '\u000e' and <= '\u001f') or '\u007f';
+            if (!allowNewLines)
+                result |= c is >= '\u000a' and <= '\u000e';
+            return result;
+        }
 
         public static bool IsValueSeparator(char c) =>
             c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
@@ -2022,7 +2028,7 @@ namespace Tommy
                     '\r' when escapeNewlines => @"\r",
                     '\\'                     => @"\\",
                     '\"'                     => @"\""",
-                    var _ when TomlSyntax.ShouldBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
+                    var _ when TomlSyntax.MustBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
                         CodePoint(txt, ref i, c),
                     var _ => c
                 });

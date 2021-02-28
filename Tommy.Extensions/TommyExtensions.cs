@@ -51,7 +51,7 @@ namespace Tommy.Extensions
                                                     StringBuilder sb,
                                                     ref bool escaped)
             {
-                if (TomlSyntax.ShouldBeEscaped(c))
+                if (TomlSyntax.MustBeEscaped(c))
                     throw new Exception($"The character U+{(int) c:X8} must be escaped in a string!");
 
                 if (escaped)
