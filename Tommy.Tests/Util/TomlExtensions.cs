@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿using System.Text;
 using SimpleJSON;
 
 namespace Tommy.Tests.Util
@@ -18,6 +18,32 @@ namespace Tommy.Tests.Util
             Traverse(obj, node);
             return obj.ToString();
         }
+        
+        public static string EscapeJson(this string txt)
+                {
+                    var stringBuilder = new StringBuilder(txt.Length + 2);
+                    for (var i = 0; i < txt.Length; i++)
+                    {
+                        var c = txt[i];
+        
+                        static string CodePoint(string txt, ref int i, char c) => char.IsSurrogatePair(txt, i)
+                            ? $"\\U{char.ConvertToUtf32(txt, i++):X8}"
+                            : $"\\u{(ushort) c:X4}";
+        
+                        stringBuilder.Append(c switch
+                        {
+                            '\b'  => @"\b",
+                            '\n'  => @"\n",
+                            '\f'  => @"\f",
+                            '\r'  => @"\r",
+                            '\\'  => @"\\",
+                            '\t' => @"\t",
+                            var _ => c
+                        });
+                    }
+        
+                    return stringBuilder.ToString();
+                }
 
         private static void Traverse(JSONNode obj, TomlNode node, string nodeKey = null, bool isChild = false)
         {
@@ -43,7 +69,7 @@ namespace Tommy.Tests.Util
                 switch (node)
                 {
                     case TomlString str:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "string", ["value"] = str.Value });
+                        Add(obj, nodeKey, new JSONObject{ ["type"] = "string", ["value"] = str.Value.EscapeJson() });
                         break;
                     case TomlInteger i:
                         Add(obj, nodeKey, new JSONObject{ ["type"] = "integer", ["value"] = i.Value.ToString() });
