@@ -10,6 +10,10 @@ The style normalization is done to keep the code simple and manageable.
 Only comments that are directly above the table or key-value pair are recognized.  
 Comments are ignored inside arrays and inline tables.
 
+### Floats
+
+* Exponent marker is always output as lowercase `e`
+
 ### Dates
 
 * The `T` separator is added to all local dates and date offsets

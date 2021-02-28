@@ -229,7 +229,7 @@ namespace Tommy
                 var v when double.IsNaN(v)              => TomlSyntax.NAN_VALUE,
                 var v when double.IsPositiveInfinity(v) => TomlSyntax.INF_VALUE,
                 var v when double.IsNegativeInfinity(v) => TomlSyntax.NEG_INF_VALUE,
-                var v                                   => v.ToString("G", CultureInfo.InvariantCulture)
+                var v                                   => v.ToString("G", CultureInfo.InvariantCulture).ToLowerInvariant()
             };
     }
 
