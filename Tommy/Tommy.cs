@@ -1074,7 +1074,7 @@ namespace Tommy
 
                 if (c == TomlSyntax.SUBKEY_SEPARATOR)
                 {
-                    if (buffer.Length == 0)
+                    if (buffer.Length == 0 && !quoted)
                         return AddError($"Found an extra subkey separator in {".".Join(parts)}...");
 
                     parts.Add(buffer.ToString());
@@ -1117,7 +1117,7 @@ namespace Tommy
                 col++;
             }
 
-            if (buffer.Length == 0)
+            if (buffer.Length == 0 && !quoted)
                 return AddError($"Found an extra subkey separator in {".".Join(parts)}...");
 
             parts.Add(buffer.ToString());
