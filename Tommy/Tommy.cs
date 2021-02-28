@@ -1301,12 +1301,6 @@ namespace Tommy
                     return null;
                 }
 
-                if (result.ChildrenCount != 0 && result[0].GetType() != currentValue.GetType())
-                {
-                    AddError($"Arrays cannot have mixed types! Inferred type: {result[0].GetType().FullName}. Element type: {currentValue.GetType().FullName}");
-                    return null;
-                }
-
                 continue;
                 consume_character:
                 ConsumeChar();
