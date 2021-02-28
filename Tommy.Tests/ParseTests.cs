@@ -20,6 +20,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"array"}, Category = "Array tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"table"}, Category = "Table tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"inline-table"}, Category = "Inline table tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"array-table"}, Category = "Array table tests")]
         public void ParsePositiveTest(SuccessTest test)
         {
             TomlNode tomlNode = null;
