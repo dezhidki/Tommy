@@ -1,8 +1,0 @@
-﻿{
-    "name": { "type": "string", "value": "Fido" },
-    "breed": { "type": "string", "value": "pug" },
-    "owner": {
-        "name": { "type": "string", "value": "Regina Dogman" },
-        "member_since": { "type": "local date", "value": "1999-08-04" }
-    }
-}
