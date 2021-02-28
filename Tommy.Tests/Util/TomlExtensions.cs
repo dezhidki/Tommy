@@ -18,32 +18,32 @@ namespace Tommy.Tests.Util
             Traverse(obj, node);
             return obj.ToString();
         }
-        
-        public static string EscapeJson(this string txt)
+
+        private static string EscapeJson(this string txt)
+        {
+            var stringBuilder = new StringBuilder(txt.Length + 2);
+            for (var i = 0; i < txt.Length; i++)
+            {
+                var c = txt[i];
+
+                static string CodePoint(string txt, ref int i, char c) => char.IsSurrogatePair(txt, i)
+                    ? $"\\U{char.ConvertToUtf32(txt, i++):X8}"
+                    : $"\\u{(ushort) c:X4}";
+
+                stringBuilder.Append(c switch
                 {
-                    var stringBuilder = new StringBuilder(txt.Length + 2);
-                    for (var i = 0; i < txt.Length; i++)
-                    {
-                        var c = txt[i];
-        
-                        static string CodePoint(string txt, ref int i, char c) => char.IsSurrogatePair(txt, i)
-                            ? $"\\U{char.ConvertToUtf32(txt, i++):X8}"
-                            : $"\\u{(ushort) c:X4}";
-        
-                        stringBuilder.Append(c switch
-                        {
-                            '\b'  => @"\b",
-                            '\n'  => @"\n",
-                            '\f'  => @"\f",
-                            '\r'  => @"\r",
-                            '\\'  => @"\\",
-                            '\t' => @"\t",
-                            var _ => c
-                        });
-                    }
-        
-                    return stringBuilder.ToString();
-                }
+                    '\b'  => @"\b",
+                    '\n'  => @"\n",
+                    '\f'  => @"\f",
+                    '\r'  => @"\r",
+                    '\\'  => @"\",
+                    '\t'  => @"\t",
+                    var _ => c
+                });
+            }
+
+            return stringBuilder.ToString();
+        }
 
         private static void Traverse(JSONNode obj, TomlNode node, string nodeKey = null, bool isChild = false)
         {
@@ -69,27 +69,36 @@ namespace Tommy.Tests.Util
                 switch (node)
                 {
                     case TomlString str:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "string", ["value"] = str.Value.EscapeJson() });
+                        Add(obj, nodeKey, new JSONObject {["type"] = "string", ["value"] = str.Value.EscapeJson()});
                         break;
                     case TomlInteger i:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "integer", ["value"] = i.Value.ToString() });
+                        Add(obj, nodeKey, new JSONObject {["type"] = "integer", ["value"] = i.Value.ToString()});
                         break;
                     case TomlFloat f:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "float", ["value"] = f.ToInlineToml() });
+                        Add(obj, nodeKey, new JSONObject {["type"] = "float", ["value"] = f.ToInlineToml()});
                         break;
                     case TomlDateTimeLocal dtl:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "local " + dtl switch
-                        {
-                            var _ when dtl.OnlyDate => "date",
-                            var _ when dtl.OnlyTime => "time",
-                            var _                   => "datetime"
-                        }, ["value"] = dtl.ToInlineToml() });
+                        Add(obj,
+                            nodeKey,
+                            new JSONObject
+                            {
+                                ["type"] = "local " +
+                                           dtl switch
+                                           {
+                                               var _ when dtl.OnlyDate => "date",
+                                               var _ when dtl.OnlyTime => "time",
+                                               var _                   => "datetime"
+                                           },
+                                ["value"] = dtl.ToInlineToml()
+                            });
                         break;
                     case TomlDateTimeOffset dto:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "offset datetime", ["value"] = dto.ToInlineToml() });
+                        Add(obj,
+                            nodeKey,
+                            new JSONObject {["type"] = "offset datetime", ["value"] = dto.ToInlineToml()});
                         break;
                     case TomlBoolean b:
-                        Add(obj, nodeKey, new JSONObject{ ["type"] = "boolean", ["value"] = b.ToInlineToml() });
+                        Add(obj, nodeKey, new JSONObject {["type"] = "boolean", ["value"] = b.ToInlineToml()});
                         break;
                     case TomlArray arr:
                         var tomlObj = new JSONObject {["type"] = "array", ["value"] = new JSONArray()};
@@ -99,6 +108,7 @@ namespace Tommy.Tests.Util
                             Traverse(jsonArray, arrValue, isChild: true);
                         break;
                 }
+
                 return;
             }
 
