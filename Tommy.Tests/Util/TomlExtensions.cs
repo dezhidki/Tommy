@@ -22,14 +22,14 @@ namespace Tommy.Tests.Util
         private static string EscapeJson(this string txt)
         {
             var stringBuilder = new StringBuilder(txt.Length + 2);
-            for (var i = 0; i < txt.Length; i++)
+            
+            static string CodePoint(string txt, ref int i, char c) => char.IsSurrogatePair(txt, i)
+                ? $"\\U{char.ConvertToUtf32(txt, i++):X8}"
+                : $"\\u{(ushort) c:X4}";
+
+            for (var index = 0; index < txt.Length; index++)
             {
-                var c = txt[i];
-
-                static string CodePoint(string txt, ref int i, char c) => char.IsSurrogatePair(txt, i)
-                    ? $"\\U{char.ConvertToUtf32(txt, i++):X8}"
-                    : $"\\u{(ushort) c:X4}";
-
+                var c = txt[index];
                 stringBuilder.Append(c switch
                 {
                     '\b'  => @"\b",
@@ -38,6 +38,8 @@ namespace Tommy.Tests.Util
                     '\r'  => @"\r",
                     '\\'  => @"\",
                     '\t'  => @"\t",
+                    var _ when TomlSyntax.MustBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
+                        CodePoint(txt, ref index, c),
                     var _ => c
                 });
             }
