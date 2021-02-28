@@ -18,6 +18,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"datetime-offset"}, Category = "Datetime (offset) tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"datetime-local"}, Category = "Datetime (local) tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"array"}, Category = "Array tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"table"}, Category = "Table tests")]
         public void ParsePositiveTest(SuccessTest test)
         {
             TomlNode tomlNode = null;
