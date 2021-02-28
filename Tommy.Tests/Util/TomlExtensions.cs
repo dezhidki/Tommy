@@ -1,5 +1,4 @@
-﻿using System;
-using SimpleJSON;
+﻿using SimpleJSON;
 
 namespace Tommy.Tests.Util
 {
@@ -12,7 +11,7 @@ namespace Tommy.Tests.Util
             return obj.ToString();
         }
 
-        private static void Traverse(JSONNode obj, TomlNode node, string nodeKey = null)
+        private static void Traverse(JSONNode obj, TomlNode node, string nodeKey = null, bool isChild = false)
         {
             static void Add(JSONNode obj, string k, JSONNode add)
             {
@@ -23,7 +22,7 @@ namespace Tommy.Tests.Util
             }
 
             // Normal table, add it to the root
-            if (node is TomlTable tbl && nodeKey != null)
+            if (node is TomlTable tbl && isChild)
             {
                 var jsonObj = new JSONObject();
                 Add(obj, nodeKey, jsonObj);
@@ -54,7 +53,7 @@ namespace Tommy.Tests.Util
                         var jsonArray = new JSONArray();
                         Add(obj, nodeKey, jsonArray);
                         foreach (var arrValue in arr.Children)
-                            Traverse(jsonArray, arrValue);
+                            Traverse(jsonArray, arrValue, isChild: true);
 
                         break;
                 }
@@ -63,7 +62,7 @@ namespace Tommy.Tests.Util
             }
 
             foreach (var key in node.Keys)
-                Traverse(obj, node[key], key);
+                Traverse(obj, node[key], key, true);
         }
     }
 }
