@@ -10,17 +10,17 @@ namespace Tommy.Tests
     public class ParseTests
     {
         [Test]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"keys"}, Category = "Key tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"string"}, Category = "String tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"integer"}, Category = "Integer tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"float"}, Category = "Float tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"boolean"}, Category = "Boolean tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"datetime-offset"}, Category = "Datetime (offset) tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"datetime-local"}, Category = "Datetime (local) tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"array"}, Category = "Array tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"boolean"}, Category = "Boolean tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"comment"}, Category = "Comment ignore tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"date-time"}, Category = "Datetime tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"float"}, Category = "Float tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"integer"}, Category = "Integer tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"key-value"}, Category = "Key-value parse tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"qa"}, Category = "Large data parse tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"string"}, Category = "String tests")]
         [TestCaseSource(nameof(TestParseSuccess), new object[] {"table"}, Category = "Table tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"inline-table"}, Category = "Inline table tests")]
-        [TestCaseSource(nameof(TestParseSuccess), new object[] {"array-table"}, Category = "Array table tests")]
+        [TestCaseSource(nameof(TestParseSuccess), new object[] {"generic"}, Category = "Generic tests")]
         public void ParsePositiveTest(SuccessTest test)
         {
             TomlNode tomlNode = null;
@@ -43,12 +43,12 @@ namespace Tommy.Tests
 
         private static IEnumerable<SuccessTest> TestParseSuccess(string caseSetName)
         {
-            var casesPath = Path.Combine("cases", "parse-success", caseSetName);
+            var casesPath = Path.Combine("cases", "valid", caseSetName);
             foreach (var tomlFile in Directory.EnumerateFiles(casesPath, "*.toml"))
             {
                 var testName = Path.GetFileNameWithoutExtension(tomlFile);
                 var jsonFile = Path.Combine(casesPath, $"{testName}.json");
-                yield return new SuccessTest(File.ReadAllText(tomlFile), File.ReadAllText(jsonFile), testName);
+                yield return new SuccessTest(File.ReadAllText(tomlFile), File.ReadAllText(jsonFile), $"{caseSetName}/{testName}");
             }
         }
 
