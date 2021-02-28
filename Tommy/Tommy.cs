@@ -217,7 +217,7 @@ namespace Tommy
 
         public double Value { get; set; }
 
-        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+        public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
         public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
 
@@ -228,7 +228,7 @@ namespace Tommy
             {
                 var v when double.IsNaN(v)              => TomlSyntax.NAN_VALUE,
                 var v when double.IsPositiveInfinity(v) => TomlSyntax.INF_VALUE,
-                var v when double.IsPositiveInfinity(v) => TomlSyntax.NEG_INF_VALUE,
+                var v when double.IsNegativeInfinity(v) => TomlSyntax.NEG_INF_VALUE,
                 var v                                   => v.ToString("G", CultureInfo.InvariantCulture)
             };
     }
