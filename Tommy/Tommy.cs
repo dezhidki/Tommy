@@ -1729,7 +1729,7 @@ namespace Tommy
 
         private string ParseComment()
         {
-            reader.Read();
+            ConsumeChar();
             var commentLine = reader.ReadLine()?.Trim() ?? "";
             if (commentLine.Any(ch => TomlSyntax.MustBeEscaped(ch)))
                 AddError("Comment must not contain control characters other than tab.", false);
@@ -1836,7 +1836,7 @@ namespace Tommy
          * A pattern to verify a special 0x, 0o and 0b forms of an integer according to the TOML specification.
          */
         public static readonly Regex BasedIntegerPattern =
-            new(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new(@"^0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /**
          * A pattern to verify the float value according to the TOML specification.
