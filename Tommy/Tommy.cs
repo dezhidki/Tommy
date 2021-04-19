@@ -1240,7 +1240,7 @@ namespace Tommy
                     SecondsPrecision = precision
                 };
 
-            AddError($"Value \"{value}\" is not a valid TOML 0.5.0 value!");
+            AddError($"Value \"{value}\" is not a valid TOML value!");
             return null;
         }
 
