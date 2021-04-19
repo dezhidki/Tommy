@@ -729,9 +729,7 @@ namespace Tommy
                     // Start of a comment; ignore until newline
                     if (c == TomlSyntax.COMMENT_SYMBOL)
                     {
-                        // Consume the comment symbol and buffer the whole comment line
-                        reader.Read();
-                        latestComment.AppendLine(reader.ReadLine()?.Trim());
+                        latestComment.AppendLine(ParseComment());
                         AdvanceLine(1);
                         continue;
                     }
@@ -861,7 +859,7 @@ namespace Tommy
                     if (TomlSyntax.IsWhiteSpace(c) || c == TomlSyntax.NEWLINE_CARRIAGE_RETURN_CHARACTER)
                         goto consume_character;
 
-                    if (c == TomlSyntax.COMMENT_SYMBOL || c == TomlSyntax.NEWLINE_CHARACTER)
+                    if (c is TomlSyntax.COMMENT_SYMBOL or TomlSyntax.NEWLINE_CHARACTER)
                     {
                         currentState = ParseState.None;
                         AdvanceLine();
@@ -869,7 +867,7 @@ namespace Tommy
                         if (c == TomlSyntax.COMMENT_SYMBOL)
                         {
                             col++;
-                            reader.ReadLine();
+                            ParseComment();
                             continue;
                         }
 
@@ -893,12 +891,15 @@ namespace Tommy
             return rootNode;
         }
 
-        private bool AddError(string message)
+        private bool AddError(string message, bool skipLine = true)
         {
             syntaxErrors.Add(new TomlSyntaxException(message, currentState, line, col));
             // Skip the whole line in hope that it was only a single faulty value (and non-multiline one at that)
-            reader.ReadLine();
-            AdvanceLine(1);
+            if (skipLine)
+            {
+                reader.ReadLine();
+                AdvanceLine(1);    
+            }
             currentState = ParseState.None;
             return false;
         }
@@ -1722,6 +1723,18 @@ namespace Tommy
             return result;
         }
 
+        #endregion
+        
+        #region Misc parsing
+
+        private string ParseComment()
+        {
+            reader.Read();
+            var commentLine = reader.ReadLine()?.Trim() ?? "";
+            if (commentLine.Any(ch => TomlSyntax.MustBeEscaped(ch)))
+                AddError("Comment must not contain control characters other than tab.", false);
+            return commentLine;
+        }
         #endregion
     }
 
