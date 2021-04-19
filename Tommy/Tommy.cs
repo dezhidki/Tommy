@@ -1505,16 +1505,24 @@ namespace Tommy
             }
 
             int cur;
+            var readDone = false;
             while ((cur = reader.Read()) >= 0)
             {
                 // Consume the character
                 col++;
                 var c = (char) cur;
-                if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, sb, ref escaped))
+                readDone = ProcessQuotedValueCharacter(quote, isNonLiteral, c, sb, ref escaped);
+                if (readDone)
                 {
                     if (currentState == ParseState.None) return null;
                     break;
                 }
+            }
+
+            if (!readDone)
+            {
+                AddError("Unclosed string.");
+                return null;
             }
 
             if (!isNonLiteral) return sb.ToString();
