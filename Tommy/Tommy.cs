@@ -1327,6 +1327,7 @@ namespace Tommy
             ConsumeChar();
             var result = new TomlTable {IsInline = true};
             TomlNode currentValue = null;
+            var separator = false;
             var keyParts = new List<string>();
             int cur;
             while ((cur = reader.Peek()) >= 0)
@@ -1366,9 +1367,11 @@ namespace Tommy
                         return null;
                     keyParts.Clear();
                     currentValue = null;
+                    separator = true;
                     goto consume_character;
                 }
 
+                separator = false;
                 currentValue = ReadKeyValuePair(keyParts);
                 continue;
 
@@ -1376,6 +1379,12 @@ namespace Tommy
                 ConsumeChar();
             }
 
+            if (separator)
+            {
+                AddError("Trailing commas are not allowed in inline tables.");
+                return null;
+            }
+            
             if (currentValue != null && !InsertNode(currentValue, result, keyParts))
                 return null;
 
