@@ -1857,13 +1857,13 @@ namespace Tommy
         public const string POS_INF_VALUE = "+inf";
         public const string NEG_INF_VALUE = "-inf";
 
-        public static bool IsBoolean(string s) => s == TRUE_VALUE || s == FALSE_VALUE;
+        public static bool IsBoolean(string s) => s is TRUE_VALUE or FALSE_VALUE;
 
-        public static bool IsPosInf(string s) => s == INF_VALUE || s == POS_INF_VALUE;
+        public static bool IsPosInf(string s) => s is INF_VALUE or POS_INF_VALUE;
 
         public static bool IsNegInf(string s) => s == NEG_INF_VALUE;
 
-        public static bool IsNaN(string s) => s == NAN_VALUE || s == POS_NAN_VALUE || s == NEG_NAN_VALUE;
+        public static bool IsNaN(string s) => s is NAN_VALUE or POS_NAN_VALUE or NEG_NAN_VALUE;
 
         public static bool IsInteger(string s) => IntegerPattern.IsMatch(s);
 
@@ -1981,11 +1981,11 @@ namespace Tommy
 
         public static readonly char[] NewLineCharacters = {NEWLINE_CHARACTER, NEWLINE_CARRIAGE_RETURN_CHARACTER};
 
-        public static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == LITERAL_STRING_SYMBOL;
+        public static bool IsQuoted(char c) => c is BASIC_STRING_SYMBOL or LITERAL_STRING_SYMBOL;
 
-        public static bool IsWhiteSpace(char c) => c == ' ' || c == '\t';
+        public static bool IsWhiteSpace(char c) => c is ' ' or '\t';
 
-        public static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
+        public static bool IsNewLine(char c) => c is NEWLINE_CHARACTER or NEWLINE_CARRIAGE_RETURN_CHARACTER;
 
         public static bool IsLineBreak(char c) => c == NEWLINE_CHARACTER;
 
@@ -2003,7 +2003,7 @@ namespace Tommy
         }
 
         public static bool IsValueSeparator(char c) =>
-            c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
+            c is ITEM_SEPARATOR or ARRAY_END_SYMBOL or INLINE_TABLE_END_SYMBOL;
 
         #endregion
     }
