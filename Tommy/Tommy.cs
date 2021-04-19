@@ -1658,6 +1658,8 @@ namespace Tommy
                     }
 
                     latestNode = currentNode;
+                    if (latestNode is TomlTable { IsInline: true })
+                        return AddError($"Cannot assign {".".Join(path)} because it will edit an immutable table.");
                 }
 
             if (latestNode.HasKey(path[path.Count - 1]))
