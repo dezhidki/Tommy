@@ -1516,6 +1516,7 @@ namespace Tommy
             var sb = new StringBuilder();
             var escaped = false;
             var skipWhitespace = false;
+            var skipWhitespaceLineSkipped = false;
             var quotesEncountered = 0;
             var first = true;
             int cur;
@@ -1553,10 +1554,20 @@ namespace Tommy
                     if (TomlSyntax.IsEmptySpace(c))
                     {
                         if (TomlSyntax.IsLineBreak(c))
+                        {
+                            skipWhitespaceLineSkipped = true;
                             AdvanceLine();
+                        }
                         continue;
                     }
 
+                    if (!skipWhitespaceLineSkipped)
+                    {
+                        AddError("Non-whitespace character after trim marker.");
+                        return null;
+                    }
+
+                    skipWhitespaceLineSkipped = false;
                     skipWhitespace = false;
                 }
 
