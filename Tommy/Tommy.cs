@@ -838,6 +838,8 @@ namespace Tommy
                         {
                             if (currentState != ParseState.None)
                                 AddError("Error creating table array!");
+                            // Reset a node to root in order to try and continue parsing
+                            currentNode = rootNode;
                             continue;
                         }
 
