@@ -1020,6 +1020,9 @@ namespace Tommy
                         ? ReadQuotedValueMultiLine(c)
                         : ReadQuotedValueSingleLine(c, excess);
 
+                    if (value is null)
+                        return null;
+                    
                     return new TomlString
                     {
                         Value = value,
@@ -1520,7 +1523,10 @@ namespace Tommy
             {
                 var c = (char) cur;
                 if (TomlSyntax.MustBeEscaped(c, true))
-                    throw new Exception($"The character U+{(int) c:X8} must be escaped!");
+                {
+                    AddError($"The character U+{(int) c:X8} must be escaped!");
+                    return null;
+                }
                 // Trim the first newline
                 if (first && TomlSyntax.IsNewLine(c))
                 {
