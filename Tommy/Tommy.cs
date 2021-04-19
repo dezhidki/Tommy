@@ -1482,7 +1482,15 @@ namespace Tommy
                 var shouldReturn =
                     ProcessQuotedValueCharacter(quote, isNonLiteral, initialData, sb, ref escaped);
                 if (currentState == ParseState.None) return null;
-                if (shouldReturn) return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
+                if (shouldReturn)
+                    if (isNonLiteral)
+                    {
+                        if (sb.ToString().TryUnescape(out var res, out var ex)) return res;
+                        AddError(ex.Message);
+                        return null;
+                    }
+                    else
+                        return sb.ToString();
             }
 
             int cur;
@@ -1498,7 +1506,10 @@ namespace Tommy
                 }
             }
 
-            return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
+            if (!isNonLiteral) return sb.ToString();
+            if (sb.ToString().TryUnescape(out var unescaped, out var unescapedEx)) return unescaped;
+            AddError(unescapedEx.Message);
+            return null;
         }
 
         /**
@@ -1618,7 +1629,10 @@ namespace Tommy
 
             // Remove last two quotes (third one wasn't included by default)
             sb.Length -= 2;
-            return isBasic ? sb.ToString().Unescape() : sb.ToString();
+            if (!isBasic) return sb.ToString();
+            if (sb.ToString().TryUnescape(out var res, out var ex)) return res;
+            AddError(ex.Message);
+            return null;
         }
 
         #endregion
@@ -2067,6 +2081,22 @@ namespace Tommy
             return stringBuilder.ToString();
         }
 
+        public static bool TryUnescape(this string txt, out string unescaped, out Exception exception)
+        {
+            try
+            {
+                exception = null;
+                unescaped = txt.Unescape();
+                return true;
+            }
+            catch (Exception e)
+            {
+                exception = e;
+                unescaped = null;
+                return false;
+            }
+        }
+        
         public static string Unescape(this string txt)
         {
             if (string.IsNullOrEmpty(txt)) return txt;
