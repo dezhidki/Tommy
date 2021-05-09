@@ -2005,7 +2005,7 @@ namespace Tommy
         public static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
 
         public static bool IsBareKey(char c) =>
-            'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
+            c is <= 'A' and <= 'Z' or <= 'a' and <= 'z' or <= '0' and <= '9' or '_' or '-';
 
         public static bool MustBeEscaped(char c, bool allowNewLines = false)
         {
@@ -2025,7 +2025,7 @@ namespace Tommy
     {
         public static string AsKey(this string key)
         {
-            var quote = key.Any(c => !TomlSyntax.IsBareKey(c));
+            var quote = key == string.Empty || key.Any(c => !TomlSyntax.IsBareKey(c));
             return !quote ? key : $"{TomlSyntax.BASIC_STRING_SYMBOL}{key.Escape()}{TomlSyntax.BASIC_STRING_SYMBOL}";
         }
 

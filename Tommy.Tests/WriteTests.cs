@@ -441,7 +441,12 @@ namespace Tommy.Tests
                         CollapseLevel = 1,
                         Value = true
                     }
-                }
+                },
+            };
+
+            private static TomlTable EmptyKeyName => new()
+            {
+                [""] = "abc"
             };
         }
     }
