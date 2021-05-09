@@ -15,6 +15,8 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(BooleanTests)}, Category = "Boolean tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(CommentTests)}, Category = "Comment tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(DateTimeTests)}, Category = "DateTime tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(FloatTests)}, Category = "Float tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(GenericTests)}, Category = "Generic tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -300,6 +302,73 @@ namespace Tommy.Tests
                     Style = TomlDateTimeLocal.DateTimeStyle.Time,
                     Value = DateTime.Parse("00:32:00.999999")
                 }
+            };
+        }
+
+        private static class FloatTests
+        {
+            private static TomlTable Float1 => new()
+            {
+                ["flt1"] = 1.0,
+                ["flt2"] = -0.01,
+                ["flt4"] = 5e+22,
+                ["flt5"] = 1e06,
+                ["flt6"] = -2E-2,
+                ["flt7"] = 6.626e-34,
+                ["flt8"] = 224_617.445_991_228,
+                ["flt9"] = -0e0
+            };
+            
+            private static TomlTable Float2 => new()
+            {
+                ["sf1"] = double.PositiveInfinity,
+                ["sf2"] = double.NegativeInfinity,
+                ["sf3"] = double.NaN,
+                ["sf4"] = -double.NaN,
+            };
+        }
+
+        private static class GenericTests
+        {
+            private static TomlTable Generic1 => new()
+            {
+                Comment = "This is a TOML document.",
+                ["title"] = "TOML Example",
+                ["owner"] =
+                {
+                    ["name"] = "Tom Preston-Werner",
+                    ["dob"] = new TomlDateTimeOffset
+                    {
+                        Comment = "First class dates",
+                        Value = DateTimeOffset.Parse("1979-05-27T07:32:00-08:00")
+                    }
+                },
+                ["database"] =
+                {
+                    ["server"] = "192.168.1.1",
+                    ["ports"] = { 8001, 8001, 8002 },
+                    ["connection_max"] = 5000,
+                    ["enabled"] = true
+                },
+                ["servers"] =
+                {
+                    Comment = "Comments on sections are put on top of the section",
+                    ["alpha"] =
+                    {
+                        ["ip"] = "10.0.0.1",
+                        ["dc"] = "eqdc10"
+                    },
+                    ["beta"] =
+                    {
+                        ["ip"] = "10.0.0.2",
+                        ["dc"] = "eqdc10"
+                    }
+                },
+                ["clients"] =
+                {
+                    ["data"] = { [0] = { "gamma", "delta" }, [1] = { 1, 2 } }
+                },
+                ["hosts"] = { "alpha", "omega" }
             };
         }
     }
