@@ -373,7 +373,7 @@ namespace Tommy
 
             foreach (var tomlNode in RawArray)
             {
-                if (!(tomlNode is TomlTable tbl))
+                if (tomlNode is not TomlTable tbl)
                     throw new TomlFormatException("The array is marked as array table but contains non-table nodes!");
 
                 // Ensure it's parsed as a section
@@ -394,8 +394,8 @@ namespace Tommy
 
                 first = false;
 
-                // Don't pass section name because we already specified it
-                tbl.WriteTo(tw);
+                // Don't write section since it's already written here
+                tbl.WriteTo(tw, name, false);
             }
         }
     }
@@ -508,7 +508,9 @@ namespace Tommy
             return nodes;
         }
 
-        public override void WriteTo(TextWriter tw, string name = null)
+        public override void WriteTo(TextWriter tw, string name = null) => WriteTo(tw, name, true);
+
+        internal void WriteTo(TextWriter tw, string name, bool writeSectionName)
         {
             // The table is inline table
             if (IsInline && name != null)
@@ -526,7 +528,7 @@ namespace Tommy
 
             Comment?.AsComment(tw);
 
-            if (name != null && (hasRealValues || collapsedItems.Count > 0))
+            if (name != null && (hasRealValues || collapsedItems.Count > 0) && writeSectionName)
             {
                 tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                 tw.Write(name);
@@ -592,10 +594,8 @@ namespace Tommy
                 return;
 
             if (name != null)
-            {
                 tw.WriteLine();
-                tw.WriteLine();
-            }
+            
             var first = true;
             foreach (var child in sectionableItems)
             {
