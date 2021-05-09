@@ -415,7 +415,7 @@ namespace Tommy
         public override bool IsTable { get; } = true;
         public bool IsInline { get; set; }
         public Dictionary<string, TomlNode> RawTable => children ??= new Dictionary<string, TomlNode>();
-        private bool HasUncollapsedItems => RawTable.Any(n => n.Value.CollapseLevel == 0);
+        private bool HasUncollapsedItems => RawTable.Any(n => n.Value is TomlTable { HasUncollapsedItems: true } or not TomlTable and { CollapseLevel: 0 });
 
         public override TomlNode this[string key]
         {
@@ -527,7 +527,7 @@ namespace Tommy
                 return;
             }
 
-            if (!HasUncollapsedItems)
+            if (name != null && !HasUncollapsedItems)
                 return;
 
             var hasRealValues = !RawTable.All(n => n.Value is TomlTable {IsInline: false} or TomlArray {IsTableArray: true});
