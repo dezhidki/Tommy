@@ -2005,7 +2005,7 @@ namespace Tommy
         public static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
 
         public static bool IsBareKey(char c) =>
-            c is <= 'A' and <= 'Z' or <= 'a' and <= 'z' or <= '0' and <= '9' or '_' or '-';
+            c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-';
 
         public static bool MustBeEscaped(char c, bool allowNewLines = false)
         {

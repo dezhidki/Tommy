@@ -448,6 +448,18 @@ namespace Tommy.Tests
             {
                 [""] = "abc"
             };
+            
+            private static TomlTable KeyValuePair => new()
+            {
+                ["key"] = "value",
+                ["bare_key"] = "value",
+                ["bare-key"] = "value",
+                ["1234"] = "value",
+                ["-"] = "value",
+                ["-_-_-_-_-"] = "value",
+                ["ʎǝʞ"] = "value",
+                ["quoted \"value\""] = "value"
+            };
         }
     }
 }
