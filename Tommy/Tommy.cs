@@ -529,7 +529,7 @@ namespace Tommy
             if (!HasUncollapsedItems)
                 return;
 
-            var hasRealValues = !RawTable.All(n => n.Value is TomlTable {IsInline: false});
+            var hasRealValues = !RawTable.All(n => n.Value is TomlTable {IsInline: false} or TomlArray {IsTableArray: true});
 
             var collapsedItems = CollectCollapsedItems(out var _);
 
