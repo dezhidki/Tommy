@@ -21,5 +21,9 @@
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="cases\write" />
+    </ItemGroup>
 
 </Project>

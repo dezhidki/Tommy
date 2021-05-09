@@ -8,6 +8,7 @@ using Tommy.Tests.Util;
 
 namespace Tommy.Tests
 {
+    [TestFixture]
     public class ParseTests
     {
         [Test]
