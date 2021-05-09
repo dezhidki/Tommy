@@ -26,6 +26,9 @@ namespace Tommy.Tests
             var expect = File.ReadAllText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
             using var sw = new StringWriter();
             test.Table.WriteTo(sw);
+            using var sr = new StringReader(sw.ToString());
+            Assert.DoesNotThrow(() => TOML.Parse(sr));
+
             Assert.AreEqual(expect, sw.ToString());
         }
 
