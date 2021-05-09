@@ -414,6 +414,7 @@ namespace Tommy
         public override bool IsTable { get; } = true;
         public bool IsInline { get; set; }
         public Dictionary<string, TomlNode> RawTable => children ??= new Dictionary<string, TomlNode>();
+        private bool HasUncollapsedItems => RawTable.Any(n => n.Value.CollapseLevel == 0);
 
         public override TomlNode this[string key]
         {
@@ -525,7 +526,7 @@ namespace Tommy
                 return;
             }
 
-            if (RawTable.All(n => n.Value.CollapseLevel != 0))
+            if (!HasUncollapsedItems)
                 return;
 
             var hasRealValues = !RawTable.All(n => n.Value is TomlTable {IsInline: false});
@@ -555,7 +556,8 @@ namespace Tommy
                 // If value should be parsed as section, separate if from the bunch
                 if (child.Value is TomlArray {IsTableArray: true} or TomlTable {IsInline: false})
                 {
-                    sectionableItems.Add(child.Key, child.Value);
+                    if (child.Value is not TomlTable { HasUncollapsedItems: false })
+                        sectionableItems.Add(child.Key, child.Value);
                     continue;
                 }
 
@@ -585,7 +587,7 @@ namespace Tommy
                     throw new
                         TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collapsed, because it is not an inline value!");
 
-                tw.WriteLine();
+                // tw.WriteLine();
                 var key = collapsedItem.Key;
                 collapsedItem.Value.Comment?.AsComment(tw);
                 tw.Write(key);
