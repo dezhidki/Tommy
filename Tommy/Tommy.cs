@@ -359,7 +359,7 @@ namespace Tommy
             // If it's a normal array, write it as usual
             if (!IsTableArray)
             {
-                tw.Write(ToInlineToml());
+                tw.WriteLine(ToInlineToml());
                 return;
             }
 
@@ -534,7 +534,7 @@ namespace Tommy
 
             Comment?.AsComment(tw);
 
-            if (name != null && (hasRealValues || collapsedItems.Count > 0) && writeSectionName)
+            if (name != null && (hasRealValues || collapsedItems.Count > 0 || Comment != null) && writeSectionName)
             {
                 tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                 tw.Write(name);
@@ -599,7 +599,7 @@ namespace Tommy
             if (sectionableItems.Count == 0)
                 return;
 
-            if (name != null)
+            if (hasRealValues)
                 tw.WriteLine();
             
             var first = true;
