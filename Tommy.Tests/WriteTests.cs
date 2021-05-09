@@ -19,6 +19,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(GenericTests)}, Category = "Generic tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(IntegerTests)}, Category = "Integer tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(KeyValueTests)}, Category = "Key-value tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(StringTests)}, Category = "String tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -441,14 +442,14 @@ namespace Tommy.Tests
                         CollapseLevel = 1,
                         Value = true
                     }
-                },
+                }
             };
 
             private static TomlTable EmptyKeyName => new()
             {
                 [""] = "abc"
             };
-            
+
             private static TomlTable KeyValuePair => new()
             {
                 ["key"] = "value",
@@ -459,6 +460,114 @@ namespace Tommy.Tests
                 ["-_-_-_-_-"] = "value",
                 ["ʎǝʞ"] = "value",
                 ["quoted \"value\""] = "value"
+            };
+        }
+
+        private static class StringTests
+        {
+            private static TomlTable StringBasic => new()
+            {
+                ["str1"] = "I'm a string. \"You can quote me\". Name\tJos\u00E9\nLocation\tSF.",
+                ["str2"] = "This is a	tab"
+            };
+
+            private static TomlTable StringMultiline => new()
+            {
+                ["str1"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "Roses are red\nViolets are blue"
+                },
+                ["str2"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "foo\nbar \\\nbaz\\\\\nquux"
+                },
+                ["str3"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "Here are two quotation marks: \"\". Simple enough."
+                },
+                ["str3"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "Here are three quotation marks: \"\"\"."
+                },
+                ["str4"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "\"This,\" she said, \"is just a pointless statement.\""
+                },
+                ["str5"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "This is a	tab"
+                }
+            };
+
+            private static TomlTable StringEscaped => new()
+            {
+                ["str1"] = "\b",
+                ["str2"] = "\t",
+                ["str3"] = "\n",
+                ["str4"] = "\f",
+                ["str5"] = "\r",
+                ["str6"] = "\"",
+                ["str7"] = "\\",
+                ["str8"] = "\u0000",
+                ["str9"] = "\U00000000"
+            };
+
+            private static TomlTable StringLiteral => new()
+            {
+                ["winpath"] = new TomlString
+                {
+                    PreferLiteral = true,
+                    Value = @"C:\Users\nodejs\templates"
+                },
+                ["winpath2"] = new TomlString
+                {
+                    PreferLiteral = true,
+                    Value = @"\\ServerX\admin$\system32\"
+                },
+                ["quoted"] = new TomlString
+                {
+                    PreferLiteral = true,
+                    Value = @"Tom ""Dubs"" Preston-Werner"
+                },
+                ["regex"] = new TomlString
+                {
+                    PreferLiteral = true,
+                    Value = @"<\i\c*\s*>"
+                }
+            };
+
+            private static TomlTable StringLiteralMultiline => new()
+            {
+                ["regex2"] = new TomlString
+                {
+                    IsMultiline = true,
+                    PreferLiteral = true,
+                    Value = @"I [dw]on't need \d{2} apples"
+                },
+                ["lines"] = new TomlString
+                {
+                    IsMultiline = true,
+                    PreferLiteral = true,
+                    Value = "The first newline is\ntrimmed in raw strings.\n   All other whitespace\n   is preserved."
+                },
+                ["quot15"] = new TomlString
+                {
+                    IsMultiline = true,
+                    PreferLiteral = true,
+                    Value = @"Here are fifteen quotation marks: """""""""""""""""""""""""""""""
+                },
+                ["str"] = new TomlString
+                {
+                    IsMultiline = true,
+                    PreferLiteral = true,
+                    Value = @"'That,' she said, 'is still pointless.'"
+                }
             };
         }
     }
