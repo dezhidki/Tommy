@@ -357,8 +357,11 @@ namespace Tommy
                 return;
             }
 
-            tw.WriteLine();
-            Comment?.AsComment(tw);
+            if (Comment is not null)
+            {
+                tw.WriteLine();
+                Comment.AsComment(tw);
+            }
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(name);
@@ -393,8 +396,6 @@ namespace Tommy
 
                 // Don't pass section name because we already specified it
                 tbl.WriteTo(tw);
-
-                tw.WriteLine();
             }
         }
     }
@@ -538,14 +539,13 @@ namespace Tommy
             }
 
             var namePrefix = name == null ? "" : $"{name}.";
-            var first = true;
 
             var sectionableItems = new Dictionary<string, TomlNode>();
 
             foreach (var child in RawTable)
             {
                 // If value should be parsed as section, separate if from the bunch
-                if (child.Value is TomlArray arr && arr.IsTableArray || child.Value is TomlTable tbl && !tbl.IsInline)
+                if (child.Value is TomlArray {IsTableArray: true} or TomlTable {IsInline: false})
                 {
                     sectionableItems.Add(child.Key, child.Value);
                     continue;
@@ -555,11 +555,14 @@ namespace Tommy
                 if (child.Value.CollapseLevel != 0)
                     continue;
 
-                if (!first) tw.WriteLine();
-                first = false;
-
+                if (child.Value.Comment is { } c)
+                {
+                    tw.WriteLine();
+                    c.AsComment(tw);    
+                }
+                
                 var key = child.Key.AsKey();
-                child.Value.Comment?.AsComment(tw);
+                
                 tw.Write(key);
                 tw.Write(' ');
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
@@ -570,8 +573,7 @@ namespace Tommy
 
             foreach (var collapsedItem in collapsedItems)
             {
-                if (collapsedItem.Value is TomlArray arr && arr.IsTableArray ||
-                    collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
+                if (collapsedItem.Value is TomlArray {IsTableArray: true} or TomlTable {IsInline: false})
                     throw new
                         TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collapsed, because it is not an inline value!");
 
@@ -589,9 +591,12 @@ namespace Tommy
             if (sectionableItems.Count == 0)
                 return;
 
-            tw.WriteLine();
-            tw.WriteLine();
-            first = true;
+            if (name != null)
+            {
+                tw.WriteLine();
+                tw.WriteLine();
+            }
+            var first = true;
             foreach (var child in sectionableItems)
             {
                 if (!first) tw.WriteLine();
