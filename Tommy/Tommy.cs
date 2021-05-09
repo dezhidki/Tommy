@@ -178,7 +178,8 @@ namespace Tommy
 
         public override string ToInlineToml()
         {
-            if (Value.IndexOf(TomlSyntax.LITERAL_STRING_SYMBOL) != -1 && PreferLiteral) PreferLiteral = false;
+            // Automatically convert literal to non-literal if there are too many literal string symbols
+            if (Value.IndexOf(new string(TomlSyntax.LITERAL_STRING_SYMBOL, IsMultiline ? 3 : 1), StringComparison.Ordinal) != -1 && PreferLiteral) PreferLiteral = false;
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
                                     IsMultiline ? 3 : 1);
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
@@ -2106,7 +2107,7 @@ namespace Tommy
                     '\r' when escapeNewlines => @"\r",
                     '\\'                     => @"\\",
                     '\"'                     => @"\""",
-                    var _ when TomlSyntax.MustBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
+                    var _ when TomlSyntax.MustBeEscaped(c, !escapeNewlines) || TOML.ForceASCII && c > sbyte.MaxValue =>
                         CodePoint(txt, ref i, c),
                     var _ => c
                 });
