@@ -14,6 +14,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(ArrayTests)}, Category = "Array tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(BooleanTests)}, Category = "Boolean tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(CommentTests)}, Category = "Comment tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(DateTimeTests)}, Category = "DateTime tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -240,6 +241,64 @@ namespace Tommy.Tests
                 {
                     Comment = "This is a comment\twith a tab in the middle for a value",
                     Value = "value"
+                }
+            };
+        }
+
+        private static class DateTimeTests
+        {
+            private static TomlTable DateLocal1 => new()
+            {
+                ["ld1"] = new TomlDateTimeLocal
+                {
+                    Value = DateTime.Parse("1979-05-27"),
+                    Style = TomlDateTimeLocal.DateTimeStyle.Date
+                }
+            };
+            
+            private static TomlTable DateTimeOffset1 => new()
+            {
+                ["odt1"] = DateTimeOffset.Parse("1979-05-27T07:32:00Z"),
+                ["odt2"] = DateTimeOffset.Parse("1979-05-27T00:32:00-07:00"),
+                ["odt3"] = new TomlDateTimeOffset
+                {
+                    SecondsPrecision = 6,
+                    Value = DateTimeOffset.Parse("1979-05-27T00:32:00.999999-07:00")
+                },
+                ["odt4"] = new TomlDateTimeOffset
+                {
+                    SecondsPrecision = 3,
+                    Value = DateTimeOffset.Parse("1979-05-27T07:32:00.123Z")
+                },
+                ["odt5"] = new TomlDateTimeOffset
+                {
+                    SecondsPrecision = 4,
+                    Value = DateTimeOffset.Parse("1979-05-27T07:32:00.1239Z")
+                }
+            };
+
+            private static TomlTable DateTimeLocal1 => new()
+            {
+                ["ldt1"] = DateTime.Parse("1979-05-27T07:32:00"),
+                ["ldt2"] = new TomlDateTimeLocal
+                {
+                    SecondsPrecision = 6,
+                    Value = DateTime.Parse("1979-05-27T00:32:00.999999")
+                }
+            };
+            
+            private static TomlTable TimeLocal1 => new()
+            {
+                ["lt1"] = new TomlDateTimeLocal
+                {
+                    Style = TomlDateTimeLocal.DateTimeStyle.Time,
+                    Value = DateTime.Parse("07:32:00")
+                },
+                ["lt2"] = new TomlDateTimeLocal
+                {
+                    SecondsPrecision = 6,
+                    Style = TomlDateTimeLocal.DateTimeStyle.Time,
+                    Value = DateTime.Parse("00:32:00.999999")
                 }
             };
         }
