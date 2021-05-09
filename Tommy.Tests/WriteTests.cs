@@ -20,6 +20,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(IntegerTests)}, Category = "Integer tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(KeyValueTests)}, Category = "Key-value tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(StringTests)}, Category = "String tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(TableTests)}, Category = "Table tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -568,6 +569,34 @@ namespace Tommy.Tests
                     PreferLiteral = true,
                     Value = @"'That,' she said, 'is still pointless.'"
                 }
+            };
+        }
+
+        private static class TableTests
+        {
+            private static TomlTable DottedObject1 => new()
+            {
+                ["fruit"] =
+                {
+                    ["apple"] = { ["smooth"] = new TomlBoolean { CollapseLevel = 2, Value = true } },
+                    ["orange"] = new TomlInteger { CollapseLevel = 1, Value = 2 }
+                },
+            };
+            
+            private static TomlTable DottedObject2 => new()
+            {
+                ["apple"] =
+                {
+                    ["type"] = new TomlString { CollapseLevel = 1, Value = "fruit" },
+                    ["skin"] = new TomlString { CollapseLevel = 1, Value = "thin" },
+                    ["color"] = new TomlString { CollapseLevel = 1, Value = "red" },
+                },
+                ["orange"] =
+                {
+                    ["type"] = new TomlString { CollapseLevel = 1, Value = "fruit" },
+                    ["skin"] = new TomlString { CollapseLevel = 1, Value = "thick" },
+                    ["color"] = new TomlString { CollapseLevel = 1, Value = "orange" },
+                },
             };
         }
     }
