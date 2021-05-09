@@ -85,11 +85,11 @@ namespace Tommy.Tests.Util
                             new JSONObject
                             {
                                 ["type"] = "local " +
-                                           dtl switch
+                                           dtl.Style switch
                                            {
-                                               var _ when dtl.OnlyDate => "date",
-                                               var _ when dtl.OnlyTime => "time",
-                                               var _                   => "datetime"
+                                               TomlDateTimeLocal.DateTimeStyle.Date => "date",
+                                               TomlDateTimeLocal.DateTimeStyle.Time => "time",
+                                               var _                                => "datetime"
                                            },
                                 ["value"] = dtl.ToInlineToml()
                             });

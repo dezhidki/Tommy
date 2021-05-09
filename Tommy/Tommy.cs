@@ -274,9 +274,15 @@ namespace Tommy
 
     public class TomlDateTimeLocal : TomlDateTime
     {
+        public enum DateTimeStyle
+        {
+            Date,
+            Time,
+            DateTime
+        }
+        
         public override bool IsDateTimeLocal { get; } = true;
-        public bool OnlyDate { get; set; }
-        public bool OnlyTime { get; set; }
+        public DateTimeStyle Style { get; set; } = DateTimeStyle.DateTime;
         public DateTime Value { get; set; }
 
         public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
@@ -287,11 +293,11 @@ namespace Tommy
             Value.ToString(format, formatProvider);
 
         public override string ToInlineToml() =>
-            Value switch
+            Style switch
             {
-                var v when OnlyDate => v.ToString(TomlSyntax.LocalDateFormat),
-                var v when OnlyTime => v.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
-                var v               => v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision])
+                DateTimeStyle.Date => Value.ToString(TomlSyntax.LocalDateFormat),
+                DateTimeStyle.Time => Value.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
+                var _              => Value.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision])
             };
     }
 
@@ -1219,7 +1225,7 @@ namespace Tommy
                 return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
-                    OnlyDate = true
+                    Style = TomlDateTimeLocal.DateTimeStyle.Date
                 };
 
             if (StringUtils.TryParseDateTime(value,
@@ -1231,7 +1237,7 @@ namespace Tommy
                 return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
-                    OnlyTime = true,
+                    Style = TomlDateTimeLocal.DateTimeStyle.Time,
                     SecondsPrecision = precision
                 };
             
