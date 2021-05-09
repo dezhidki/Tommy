@@ -1,0 +1,9 @@
+str1 = """Roses are red
+Violets are blue"""
+str2 = """foo
+bar \\
+baz\\\\
+quux"""
+str3 = """Here are three quotation marks: \"\"\"."""
+str4 = """\"This,\" she said, \"is just a pointless statement.\""""
+str5 = """This is a\ttab"""

@@ -1,0 +1,4 @@
+bin1 = 0b11010110
+hex1 = 0xdeadbeef
+hex2 = 0xdeadbeef
+oct1 = 0o1234567

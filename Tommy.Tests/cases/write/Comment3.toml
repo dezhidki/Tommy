@@ -1,0 +1,4 @@
+# This is a full-line	comment with a tab in the middle
+
+# This is a comment	with a tab in the middle for a value
+key = "value"

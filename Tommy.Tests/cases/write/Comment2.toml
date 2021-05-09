@@ -1,0 +1,4 @@
+# eol comments can go anywhere
+
+# This is an array comment
+abc = [ 123, 456 ]

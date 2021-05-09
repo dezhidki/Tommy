@@ -1,0 +1,2 @@
+str1 = "I'm a string. \"You can quote me\". Name\tJosé\nLocation\tSF."
+str2 = "This is a\ttab"

@@ -23,8 +23,10 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(TableTests)}, Category = "Table tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
-            using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
-            test.Table.WriteTo(tw);
+            var expect = File.ReadAllText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
+            using var sw = new StringWriter();
+            test.Table.WriteTo(sw);
+            Assert.AreEqual(expect, sw.ToString());
         }
 
         private static IEnumerable<WriteSuccessTest> WriteSuccessTests(string testName)
@@ -370,9 +372,9 @@ namespace Tommy.Tests
                 },
                 ["clients"] =
                 {
-                    ["data"] = {[0] = {"gamma", "delta"}, [1] = {1, 2}}
+                    ["data"] = {[0] = {"gamma", "delta"}, [1] = {1, 2}},
+                    ["hosts"] = {"alpha", "omega"}
                 },
-                ["hosts"] = {"alpha", "omega"}
             };
         }
 
@@ -597,6 +599,58 @@ namespace Tommy.Tests
                     ["skin"] = new TomlString { CollapseLevel = 1, Value = "thick" },
                     ["color"] = new TomlString { CollapseLevel = 1, Value = "orange" },
                 },
+            };
+            
+            private static TomlTable TableBasic => new()
+            {
+                ["table-1"] =
+                {
+                    ["key1"] = "some string",
+                    ["key2"] = 123
+                },
+                ["table-2"] =
+                {
+                    ["key1"] = "another string",
+                    ["key2"] = 456
+                },
+                ["dog"] =
+                {
+                    ["tatter.man"] =
+                    {
+                        ["type"] =
+                        {
+                            ["name"] = new TomlString { CollapseLevel = 1, Value = "pug"}
+                        }
+                    }
+                },
+            };
+
+            private static TomlTable TableInline => new()
+            {
+                ["name"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["first"] = "Tom",
+                    ["last"] = "Preston-Werner"
+                },
+                ["point"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["x"] = 1,
+                    ["y"] = 2
+                },
+                ["animal"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["type"] = new TomlTable
+                    {
+                        ["name"] = new TomlString
+                        {
+                            CollapseLevel = 1,
+                            Value = "pug"
+                        }
+                    }
+                }
             };
         }
     }
