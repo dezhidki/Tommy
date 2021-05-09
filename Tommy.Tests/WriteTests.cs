@@ -17,6 +17,8 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(DateTimeTests)}, Category = "DateTime tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(FloatTests)}, Category = "Float tests")]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(GenericTests)}, Category = "Generic tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(IntegerTests)}, Category = "Integer tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(KeyValueTests)}, Category = "Key-value tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -140,7 +142,7 @@ namespace Tommy.Tests
                         ["name"] = "Nail",
                         ["sku"] = 284758393,
                         ["color"] = "gray"
-                    },
+                    }
                 }
             };
 
@@ -189,9 +191,9 @@ namespace Tommy.Tests
             {
                 ["points"] = new TomlArray
                 {
-                    new TomlTable { ["x"] = 1, ["y"] = 2, ["z"] = 3 },
-                    new TomlTable { ["x"] = 7, ["y"] = 8, ["z"] = 9 },
-                    new TomlTable { ["x"] = 2, ["y"] = 4, ["z"] = 8 },
+                    new TomlTable {["x"] = 1, ["y"] = 2, ["z"] = 3},
+                    new TomlTable {["x"] = 7, ["y"] = 8, ["z"] = 9},
+                    new TomlTable {["x"] = 2, ["y"] = 4, ["z"] = 8}
                 }
             };
         }
@@ -201,7 +203,7 @@ namespace Tommy.Tests
             private static TomlTable Boolean1 => new()
             {
                 ["bool1"] = true,
-                ["bool2"] = false,
+                ["bool2"] = false
             };
         }
 
@@ -216,7 +218,7 @@ namespace Tommy.Tests
                     Value = "value"
                 }
             };
-            
+
             private static TomlTable Comment2 => new()
             {
                 Comment = "eol comments can go anywhere",
@@ -235,7 +237,7 @@ namespace Tommy.Tests
                     }
                 }
             };
-            
+
             private static TomlTable Comment3 => new()
             {
                 Comment = "This is a full-line\tcomment with a tab in the middle",
@@ -257,7 +259,7 @@ namespace Tommy.Tests
                     Style = TomlDateTimeLocal.DateTimeStyle.Date
                 }
             };
-            
+
             private static TomlTable DateTimeOffset1 => new()
             {
                 ["odt1"] = DateTimeOffset.Parse("1979-05-27T07:32:00Z"),
@@ -288,7 +290,7 @@ namespace Tommy.Tests
                     Value = DateTime.Parse("1979-05-27T00:32:00.999999")
                 }
             };
-            
+
             private static TomlTable TimeLocal1 => new()
             {
                 ["lt1"] = new TomlDateTimeLocal
@@ -318,13 +320,13 @@ namespace Tommy.Tests
                 ["flt8"] = 224_617.445_991_228,
                 ["flt9"] = -0e0
             };
-            
+
             private static TomlTable Float2 => new()
             {
                 ["sf1"] = double.PositiveInfinity,
                 ["sf2"] = double.NegativeInfinity,
                 ["sf3"] = double.NaN,
-                ["sf4"] = -double.NaN,
+                ["sf4"] = -double.NaN
             };
         }
 
@@ -346,7 +348,7 @@ namespace Tommy.Tests
                 ["database"] =
                 {
                     ["server"] = "192.168.1.1",
-                    ["ports"] = { 8001, 8001, 8002 },
+                    ["ports"] = {8001, 8001, 8002},
                     ["connection_max"] = 5000,
                     ["enabled"] = true
                 },
@@ -366,9 +368,80 @@ namespace Tommy.Tests
                 },
                 ["clients"] =
                 {
-                    ["data"] = { [0] = { "gamma", "delta" }, [1] = { 1, 2 } }
+                    ["data"] = {[0] = {"gamma", "delta"}, [1] = {1, 2}}
                 },
-                ["hosts"] = { "alpha", "omega" }
+                ["hosts"] = {"alpha", "omega"}
+            };
+        }
+
+        private static class IntegerTests
+        {
+            private static TomlTable Integer1 => new()
+            {
+                ["int1"] = 99,
+                ["int2"] = 0,
+                ["int3"] = -0,
+                ["int4"] = -17,
+                ["int5"] = 1_000
+            };
+
+            private static TomlTable Integer2 => new()
+            {
+                ["bin1"] = new TomlInteger
+                {
+                    Value = 0b11010110,
+                    IntegerBase = TomlInteger.Base.Binary
+                },
+                ["hex1"] = new TomlInteger
+                {
+                    Value = 0xDEADBEEF,
+                    IntegerBase = TomlInteger.Base.Hexadecimal
+                },
+                ["hex2"] = new TomlInteger
+                {
+                    Value = 0xdeadbeef,
+                    IntegerBase = TomlInteger.Base.Hexadecimal
+                },
+                ["oct1"] = new TomlInteger
+                {
+                    Value = 342391,
+                    IntegerBase = TomlInteger.Base.Octal
+                }
+            };
+        }
+
+        private static class KeyValueTests
+        {
+            private static TomlTable KeyValueCaseSensitive => new()
+            {
+                ["abc"] = 123,
+                ["ABC"] = 456
+            };
+
+            private static TomlTable DottedKeys1 => new()
+            {
+                ["name"] = "Orange",
+                ["physical"] =
+                {
+                    ["color"] = new TomlString
+                    {
+                        CollapseLevel = 1,
+                        Value = "orange"
+                    },
+                    ["shape"] = new TomlString
+                    {
+                        CollapseLevel = 1,
+                        Value = "round"
+                    }
+                },
+                ["site"] =
+                {
+                    ["google.com"] = new TomlBoolean
+                    {
+                        CollapseLevel = 1,
+                        Value = true
+                    }
+                }
             };
         }
     }
