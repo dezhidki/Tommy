@@ -12,6 +12,8 @@ namespace Tommy.Tests
     {
         [Test]
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(ArrayTests)}, Category = "Array tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(BooleanTests)}, Category = "Boolean tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(CommentTests)}, Category = "Comment tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             using var tw = File.CreateText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
@@ -187,6 +189,57 @@ namespace Tommy.Tests
                     new TomlTable { ["x"] = 1, ["y"] = 2, ["z"] = 3 },
                     new TomlTable { ["x"] = 7, ["y"] = 8, ["z"] = 9 },
                     new TomlTable { ["x"] = 2, ["y"] = 4, ["z"] = 8 },
+                }
+            };
+        }
+
+        private static class BooleanTests
+        {
+            private static TomlTable Boolean1 => new()
+            {
+                ["bool1"] = true,
+                ["bool2"] = false,
+            };
+        }
+
+        private static class CommentTests
+        {
+            private static TomlTable Comment1 => new()
+            {
+                Comment = "This is a full-line comment",
+                ["key"] = new TomlString
+                {
+                    Comment = "This is a comment for a value",
+                    Value = "value"
+                }
+            };
+            
+            private static TomlTable Comment2 => new()
+            {
+                Comment = "eol comments can go anywhere",
+                ["abc"] = new TomlArray
+                {
+                    Comment = "This is an array comment",
+                    [0] = new TomlInteger
+                    {
+                        Comment = "Comment 1",
+                        Value = 123
+                    },
+                    [1] = new TomlInteger
+                    {
+                        Comment = "Comment 2",
+                        Value = 456
+                    }
+                }
+            };
+            
+            private static TomlTable Comment3 => new()
+            {
+                Comment = "This is a full-line\tcomment with a tab in the middle",
+                ["key"] = new TomlString
+                {
+                    Comment = "This is a comment\twith a tab in the middle for a value",
+                    Value = "value"
                 }
             };
         }
