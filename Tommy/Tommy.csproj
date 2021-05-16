@@ -6,13 +6,13 @@
         <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
         <LangVersion>9</LangVersion>
         <PackageId>Tommy</PackageId>
-        <Version>2.0.0</Version>
+        <Version>3.0.0</Version>
         <Authors>Denis Zhidkikh</Authors>
         <PackageTags>TOML,parser,writer,simple</PackageTags>
         <Description>
             A simple TOML parser and writer inspired by SimpleJSON.
             Provides minimal and simple API for parsing and writing TOML files.
-            Compliant with TOML 0.5.0 format spec.
+            Compliant with TOML 1.0.0 format spec.
         </Description>
         <PackageIcon>tommy_logo_icon.png</PackageIcon>
         <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
