@@ -248,6 +248,7 @@ bar.baz = "Hello, world!"
 ### Some notes about the writer
 
 * **The writer does not currently preserve the layout of the original document!** This is to save size and keep things simple for now.
+* Check out [Style info](./style.md) for information on what style Tommy uses to output TOML
 * The writer only uses basic strings for complex keys (i.e. no literal strings).
 
 ## Optional extensions
