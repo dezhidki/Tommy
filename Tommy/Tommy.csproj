@@ -1,19 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net35;netstandard2</TargetFrameworks>
+        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
         <AssemblyTitle>Tommy</AssemblyTitle>
         <Product>Tommy</Product>
-        <Copyright>Copyright © 2020 Denis Zhidkikh</Copyright>
-        <OutputPath>bin\$(Configuration)\</OutputPath>
-        <LangVersion>8</LangVersion>
+        <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
+        <LangVersion>9</LangVersion>
         <PackageId>Tommy</PackageId>
-        <Version>2.0.0</Version>
+        <Version>3.0.0</Version>
         <Authors>Denis Zhidkikh</Authors>
         <PackageTags>TOML,parser,writer,simple</PackageTags>
         <Description>
             A simple TOML parser and writer inspired by SimpleJSON.
             Provides minimal and simple API for parsing and writing TOML files.
-            Compliant with TOML 0.5.0 format spec.
+            Compliant with TOML 1.0.0 format spec.
         </Description>
         <PackageIcon>tommy_logo_icon.png</PackageIcon>
         <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
@@ -27,10 +26,10 @@
         <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="NuGet.Build.Tasks.Pack" Version="5.8.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
+      <PackageReference Include="jnm2.ReferenceAssemblies.net35" Version="1.0.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <DebugType>portable</DebugType>

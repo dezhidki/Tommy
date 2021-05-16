@@ -47,7 +47,9 @@ namespace Tommy
         public virtual bool IsString { get; } = false;
         public virtual bool IsInteger { get; } = false;
         public virtual bool IsFloat { get; } = false;
-        public virtual bool IsDateTime { get; } = false;
+        public bool IsDateTime => IsDateTimeLocal || IsDateTimeOffset;
+        public virtual bool IsDateTimeLocal { get; } = false;
+        public virtual bool IsDateTimeOffset { get; } = false;
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
         public virtual int CollapseLevel { get; set; }
@@ -57,6 +59,8 @@ namespace Tommy
         public virtual TomlInteger AsInteger => this as TomlInteger;
         public virtual TomlFloat AsFloat => this as TomlFloat;
         public virtual TomlBoolean AsBoolean => this as TomlBoolean;
+        public virtual TomlDateTimeLocal AsDateTimeLocal => this as TomlDateTimeLocal;
+        public virtual TomlDateTimeOffset AsDateTimeOffset => this as TomlDateTimeOffset;
         public virtual TomlDateTime AsDateTime => this as TomlDateTime;
         public virtual TomlArray AsArray => this as TomlArray;
 
@@ -119,15 +123,17 @@ namespace Tommy
 
         public static implicit operator TomlNode(string value) => new TomlString {Value = value};
 
-        public static implicit operator TomlNode(bool value) => new TomlBoolean { Value = value };
+        public static implicit operator TomlNode(bool value) => new TomlBoolean {Value = value};
 
-        public static implicit operator TomlNode(long value) => new TomlInteger { Value = value };
+        public static implicit operator TomlNode(long value) => new TomlInteger {Value = value};
 
-        public static implicit operator TomlNode(float value) => new TomlFloat { Value = value };
+        public static implicit operator TomlNode(float value) => new TomlFloat {Value = value};
 
-        public static implicit operator TomlNode(double value) => new TomlFloat { Value = value };
+        public static implicit operator TomlNode(double value) => new TomlFloat {Value = value};
 
-        public static implicit operator TomlNode(DateTime value) => new TomlDateTime { Value = value };
+        public static implicit operator TomlNode(DateTime value) => new TomlDateTimeLocal {Value = value};
+
+        public static implicit operator TomlNode(DateTimeOffset value) => new TomlDateTimeOffset {Value = value};
 
         public static implicit operator TomlNode(TomlNode[] nodes)
         {
@@ -152,7 +158,9 @@ namespace Tommy
 
         public static implicit operator bool(TomlNode value) => value.AsBoolean.Value;
 
-        public static implicit operator DateTime(TomlNode value) => value.AsDateTime.Value;
+        public static implicit operator DateTime(TomlNode value) => value.AsDateTimeLocal.Value;
+
+        public static implicit operator DateTimeOffset(TomlNode value) => value.AsDateTimeOffset.Value;
 
         #endregion
     }
@@ -170,7 +178,8 @@ namespace Tommy
 
         public override string ToInlineToml()
         {
-            if (Value.IndexOf(TomlSyntax.LITERAL_STRING_SYMBOL) != -1 && PreferLiteral) PreferLiteral = false;
+            // Automatically convert literal to non-literal if there are too many literal string symbols
+            if (Value.IndexOf(new string(TomlSyntax.LITERAL_STRING_SYMBOL, IsMultiline ? 3 : 1), StringComparison.Ordinal) != -1 && PreferLiteral) PreferLiteral = false;
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
                                     IsMultiline ? 3 : 1);
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
@@ -209,8 +218,8 @@ namespace Tommy
 
         public double Value { get; set; }
 
-        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
-        
+        public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+
         public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
 
         public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
@@ -220,8 +229,8 @@ namespace Tommy
             {
                 var v when double.IsNaN(v)              => TomlSyntax.NAN_VALUE,
                 var v when double.IsPositiveInfinity(v) => TomlSyntax.INF_VALUE,
-                var v when double.IsPositiveInfinity(v) => TomlSyntax.NEG_INF_VALUE,
-                var v                                   => v.ToString("G", CultureInfo.InvariantCulture)
+                var v when double.IsNegativeInfinity(v) => TomlSyntax.NEG_INF_VALUE,
+                var v                                   => v.ToString("G", CultureInfo.InvariantCulture).ToLowerInvariant()
             };
     }
 
@@ -233,34 +242,63 @@ namespace Tommy
         public bool Value { get; set; }
 
         public override string ToString() => Value.ToString();
-        
+
         public override string ToInlineToml() => Value ? TomlSyntax.TRUE_VALUE : TomlSyntax.FALSE_VALUE;
     }
 
     public class TomlDateTime : TomlNode, IFormattable
     {
-        public override bool IsDateTime { get; } = true;
-        public override bool HasValue { get; } = true;
-        public bool OnlyDate { get; set; }
-        public bool OnlyTime { get; set; }
         public int SecondsPrecision { get; set; }
+        public override bool HasValue { get; } = true;
+        public virtual string ToString(string format, IFormatProvider formatProvider) => string.Empty;
+        public virtual string ToString(IFormatProvider formatProvider) => string.Empty;
+        protected virtual string ToInlineTomlInternal() => string.Empty;
 
+        public override string ToInlineToml() => ToInlineTomlInternal()
+                                                .Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator)
+                                                .Replace(TomlSyntax.ISO861ZeroZone, TomlSyntax.RFC3339ZeroZone);
+    }
+
+    public class TomlDateTimeOffset : TomlDateTime
+    {
+        public override bool IsDateTimeOffset { get; } = true;
+        public DateTimeOffset Value { get; set; }
+
+        public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
+        public override string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+
+        public override string ToString(string format, IFormatProvider formatProvider) =>
+            Value.ToString(format, formatProvider);
+
+        protected override string ToInlineTomlInternal() => Value.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision]);
+    }
+
+    public class TomlDateTimeLocal : TomlDateTime
+    {
+        public enum DateTimeStyle
+        {
+            Date,
+            Time,
+            DateTime
+        }
+        
+        public override bool IsDateTimeLocal { get; } = true;
+        public DateTimeStyle Style { get; set; } = DateTimeStyle.DateTime;
         public DateTime Value { get; set; }
 
         public override string ToString() => Value.ToString(CultureInfo.CurrentCulture);
-        
-        public string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
-        
-        public string ToString(string format, IFormatProvider formatProvider) => Value.ToString(format, formatProvider);
+
+        public override string ToString(IFormatProvider formatProvider) => Value.ToString(formatProvider);
+
+        public override string ToString(string format, IFormatProvider formatProvider) =>
+            Value.ToString(format, formatProvider);
 
         public override string ToInlineToml() =>
-            Value switch
+            Style switch
             {
-                var v when OnlyDate => v.ToString(TomlSyntax.LocalDateFormat),
-                var v when OnlyTime => v.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
-                var v when v.Kind is DateTimeKind.Local =>
-                    v.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision]),
-                var v => v.ToString(TomlSyntax.RFC3339Formats[SecondsPrecision])
+                DateTimeStyle.Date => Value.ToString(TomlSyntax.LocalDateFormat),
+                DateTimeStyle.Time => Value.ToString(TomlSyntax.RFC3339LocalTimeFormats[SecondsPrecision]),
+                var _              => Value.ToString(TomlSyntax.RFC3339LocalDateTimeFormats[SecondsPrecision])
             };
     }
 
@@ -322,12 +360,15 @@ namespace Tommy
             // If it's a normal array, write it as usual
             if (!IsTableArray)
             {
-                tw.Write(ToInlineToml());
+                tw.WriteLine(ToInlineToml());
                 return;
             }
 
-            tw.WriteLine();
-            Comment?.AsComment(tw);
+            if (Comment is not null)
+            {
+                tw.WriteLine();
+                Comment.AsComment(tw);
+            }
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
             tw.Write(name);
@@ -339,7 +380,7 @@ namespace Tommy
 
             foreach (var tomlNode in RawArray)
             {
-                if (!(tomlNode is TomlTable tbl))
+                if (tomlNode is not TomlTable tbl)
                     throw new TomlFormatException("The array is marked as array table but contains non-table nodes!");
 
                 // Ensure it's parsed as a section
@@ -360,10 +401,8 @@ namespace Tommy
 
                 first = false;
 
-                // Don't pass section name because we already specified it
-                tbl.WriteTo(tw);
-
-                tw.WriteLine();
+                // Don't write section since it's already written here
+                tbl.WriteTo(tw, name, false);
             }
         }
     }
@@ -371,12 +410,12 @@ namespace Tommy
     public class TomlTable : TomlNode
     {
         private Dictionary<string, TomlNode> children;
-
+        
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
         public bool IsInline { get; set; }
         public Dictionary<string, TomlNode> RawTable => children ??= new Dictionary<string, TomlNode>();
-
+        
         public override TomlNode this[string key]
         {
             get
@@ -405,16 +444,10 @@ namespace Tommy
 
             if (ChildrenCount != 0)
             {
-                var collapsed = CollectCollapsedItems(out var nonCollapsible);
-
-                sb.Append(' ');
-                sb.Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawTable.Where(n => nonCollapsible.Contains(n.Key))
-                                                                       .Select(n =>
-                                                                                   $"{n.Key.AsKey()} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToInlineToml()}")));
+                var collapsed = CollectCollapsedItems();
 
                 if (collapsed.Count != 0)
-                    sb.Append(TomlSyntax.ITEM_SEPARATOR)
-                      .Append(' ')
+                    sb.Append(' ')
                       .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(collapsed.Select(n =>
                                                                        $"{n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToInlineToml()}")));
                 sb.Append(' ');
@@ -424,77 +457,58 @@ namespace Tommy
             return sb.ToString();
         }
 
-        private Dictionary<string, TomlNode> CollectCollapsedItems(out HashSet<string> nonCollapsibleItems,
-                                                                   string prefix = "",
-                                                                   Dictionary<string, TomlNode> nodes = null,
-                                                                   int level = 0)
+        private LinkedList<KeyValuePair<string, TomlNode>> CollectCollapsedItems(string prefix = "", int level = 0)
         {
-            nonCollapsibleItems = new HashSet<string>();
-            if (nodes == null)
-            {
-                nodes = new Dictionary<string, TomlNode>();
-                foreach (var keyValuePair in RawTable)
-                {
-                    var node = keyValuePair.Value;
-                    var key = keyValuePair.Key.AsKey();
-                    if (node is TomlTable tbl)
-                    {
-                        tbl.CollectCollapsedItems(out var nonCollapsible, $"{prefix}{key}.", nodes, level + 1);
-                        if (nonCollapsible.Count != 0)
-                            nonCollapsibleItems.Add(key);
-                    }
-                    else
-                    {
-                        nonCollapsibleItems.Add(key);
-                    }
-                }
-
-                return nodes;
-            }
+            var nodes = new LinkedList<KeyValuePair<string, TomlNode>>(); //new Dictionary<string, TomlNode>();
+            var postNodes = new LinkedList<KeyValuePair<string, TomlNode>>(); //new Dictionary<string, TomlNode>();
 
             foreach (var keyValuePair in RawTable)
             {
                 var node = keyValuePair.Value;
                 var key = keyValuePair.Key.AsKey();
-
-                if (node.CollapseLevel == level)
+                
+                if (node is TomlTable tbl)
                 {
-                    nodes.Add($"{prefix}{key}", node);
+                    var subnodes = tbl.CollectCollapsedItems($"{prefix}{key}.", level + 1);
+                    // Write main table first before writing collapsed items
+                    if (subnodes.Count == 0 && node.CollapseLevel == level)
+                    {
+                        postNodes.AddLast(new KeyValuePair<string, TomlNode>($"{prefix}{key}", node));
+                    }
+                    foreach (var kv in subnodes)
+                        postNodes.AddLast(kv);
                 }
-                else if (node is TomlTable tbl)
-                {
-                    tbl.CollectCollapsedItems(out var nonCollapsible, $"{prefix}{key}.", nodes, level + 1);
-                    if (nonCollapsible.Count != 0)
-                        nonCollapsibleItems.Add(key);
-                }
-                else
-                {
-                    nonCollapsibleItems.Add(key);
-                }
+                else if (node.CollapseLevel == level)
+                    nodes.AddLast(new KeyValuePair<string, TomlNode>($"{prefix}{key}", node));
             }
+            
+            foreach (var kv in postNodes)
+                nodes.AddLast(kv);
 
             return nodes;
         }
 
-        public override void WriteTo(TextWriter tw, string name = null)
+        public override void WriteTo(TextWriter tw, string name = null) => WriteTo(tw, name, true);
+
+        internal void WriteTo(TextWriter tw, string name, bool writeSectionName)
         {
             // The table is inline table
             if (IsInline && name != null)
             {
-                tw.Write(ToInlineToml());
+                tw.WriteLine(ToInlineToml());
                 return;
             }
 
-            if (RawTable.All(n => n.Value.CollapseLevel != 0))
+            var collapsedItems = CollectCollapsedItems();
+            
+            if (collapsedItems.Count == 0)
                 return;
 
-            var hasRealValues = !RawTable.All(n => n.Value is TomlTable tbl && !tbl.IsInline);
-
-            var collapsedItems = CollectCollapsedItems(out var _);
+            var hasRealValues = !collapsedItems.All(n => n.Value is TomlTable {IsInline: false} or TomlArray {IsTableArray: true});
 
             Comment?.AsComment(tw);
 
-            if (name != null && (hasRealValues || collapsedItems.Count > 0))
+            if (name != null && (hasRealValues || Comment != null) && writeSectionName)
             {
                 tw.Write(TomlSyntax.ARRAY_START_SYMBOL);
                 tw.Write(name);
@@ -509,64 +523,25 @@ namespace Tommy
             var namePrefix = name == null ? "" : $"{name}.";
             var first = true;
 
-            var sectionableItems = new Dictionary<string, TomlNode>();
-
-            foreach (var child in RawTable)
-            {
-                // If value should be parsed as section, separate if from the bunch
-                if (child.Value is TomlArray arr && arr.IsTableArray || child.Value is TomlTable tbl && !tbl.IsInline)
-                {
-                    sectionableItems.Add(child.Key, child.Value);
-                    continue;
-                }
-
-                // If the value is collapsed, it belongs to the parent
-                if (child.Value.CollapseLevel != 0)
-                    continue;
-
-                if (!first) tw.WriteLine();
-                first = false;
-
-                var key = child.Key.AsKey();
-                child.Value.Comment?.AsComment(tw);
-                tw.Write(key);
-                tw.Write(' ');
-                tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
-                tw.Write(' ');
-
-                child.Value.WriteTo(tw, $"{namePrefix}{key}");
-            }
-
             foreach (var collapsedItem in collapsedItems)
             {
-                if (collapsedItem.Value is TomlArray arr && arr.IsTableArray ||
-                    collapsedItem.Value is TomlTable tbl && !tbl.IsInline)
-                    throw new
-                        TomlFormatException($"Value {collapsedItem.Key} cannot be defined as collapsed, because it is not an inline value!");
-
-                tw.WriteLine();
                 var key = collapsedItem.Key;
+                if (collapsedItem.Value is TomlArray {IsTableArray: true} or TomlTable {IsInline: false})
+                {
+                    if (!first) tw.WriteLine();
+                    first = false;
+                    collapsedItem.Value.WriteTo(tw, $"{namePrefix}{key}");
+                    continue;
+                }
+                first = false;
+                
                 collapsedItem.Value.Comment?.AsComment(tw);
                 tw.Write(key);
                 tw.Write(' ');
                 tw.Write(TomlSyntax.KEY_VALUE_SEPARATOR);
                 tw.Write(' ');
-
+            
                 collapsedItem.Value.WriteTo(tw, $"{namePrefix}{key}");
-            }
-
-            if (sectionableItems.Count == 0)
-                return;
-
-            tw.WriteLine();
-            tw.WriteLine();
-            first = true;
-            foreach (var child in sectionableItems)
-            {
-                if (!first) tw.WriteLine();
-                first = false;
-
-                child.Value.WriteTo(tw, $"{namePrefix}{child.Key}");
             }
         }
     }
@@ -660,7 +635,7 @@ namespace Tommy
         public TomlTable Parse()
         {
             syntaxErrors = new List<TomlSyntaxException>();
-            line = col = 0;
+            line = col = 1;
             var rootNode = new TomlTable();
             var currentNode = rootNode;
             currentState = ParseState.None;
@@ -698,10 +673,8 @@ namespace Tommy
                     // Start of a comment; ignore until newline
                     if (c == TomlSyntax.COMMENT_SYMBOL)
                     {
-                        // Consume the comment symbol and buffer the whole comment line
-                        reader.Read();
-                        latestComment.AppendLine(reader.ReadLine()?.Trim());
-                        AdvanceLine(0);
+                        latestComment.AppendLine(ParseComment());
+                        AdvanceLine(1);
                         continue;
                     }
 
@@ -760,7 +733,7 @@ namespace Tommy
                             arrayTable = true;
                         }
 
-                        if (!ReadKeyName(ref keyParts, TomlSyntax.TABLE_END_SYMBOL, true))
+                        if (!ReadKeyName(ref keyParts, TomlSyntax.TABLE_END_SYMBOL))
                         {
                             keyParts.Clear();
                             continue;
@@ -809,6 +782,8 @@ namespace Tommy
                         {
                             if (currentState != ParseState.None)
                                 AddError("Error creating table array!");
+                            // Reset a node to root in order to try and continue parsing
+                            currentNode = rootNode;
                             continue;
                         }
 
@@ -830,7 +805,7 @@ namespace Tommy
                     if (TomlSyntax.IsWhiteSpace(c) || c == TomlSyntax.NEWLINE_CARRIAGE_RETURN_CHARACTER)
                         goto consume_character;
 
-                    if (c == TomlSyntax.COMMENT_SYMBOL || c == TomlSyntax.NEWLINE_CHARACTER)
+                    if (c is TomlSyntax.COMMENT_SYMBOL or TomlSyntax.NEWLINE_CHARACTER)
                     {
                         currentState = ParseState.None;
                         AdvanceLine();
@@ -838,7 +813,7 @@ namespace Tommy
                         if (c == TomlSyntax.COMMENT_SYMBOL)
                         {
                             col++;
-                            reader.ReadLine();
+                            ParseComment();
                             continue;
                         }
 
@@ -862,17 +837,20 @@ namespace Tommy
             return rootNode;
         }
 
-        private bool AddError(string message)
+        private bool AddError(string message, bool skipLine = true)
         {
             syntaxErrors.Add(new TomlSyntaxException(message, currentState, line, col));
             // Skip the whole line in hope that it was only a single faulty value (and non-multiline one at that)
-            reader.ReadLine();
-            AdvanceLine(0);
+            if (skipLine)
+            {
+                reader.ReadLine();
+                AdvanceLine(1);    
+            }
             currentState = ParseState.None;
             return false;
         }
 
-        private void AdvanceLine(int startCol = -1)
+        private void AdvanceLine(int startCol = 0)
         {
             line++;
             col = startCol;
@@ -968,7 +946,7 @@ namespace Tommy
                     if (skipNewlines)
                     {
                         reader.Read();
-                        AdvanceLine(0);
+                        AdvanceLine(1);
                         continue;
                     }
 
@@ -988,6 +966,9 @@ namespace Tommy
                         ? ReadQuotedValueMultiLine(c)
                         : ReadQuotedValueSingleLine(c, excess);
 
+                    if (value is null)
+                        return null;
+                    
                     return new TomlString
                     {
                         Value = value,
@@ -1020,7 +1001,7 @@ namespace Tommy
          * [ foo . bar ] ==>  [ foo . bar ]     (`skipWhitespace = true`, `until = ']'`)
          * ^                             ^
          */
-        private bool ReadKeyName(ref List<string> parts, char until, bool skipWhitespace = false)
+        private bool ReadKeyName(ref List<string> parts, char until)
         {
             var buffer = new StringBuilder();
             var quoted = false;
@@ -1034,21 +1015,16 @@ namespace Tommy
                 if (c == until) break;
 
                 if (TomlSyntax.IsWhiteSpace(c))
-                    if (skipWhitespace)
-                    {
-                        prevWasSpace = true;
-                        goto consume_character;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                {
+                    prevWasSpace = true;
+                    goto consume_character;
+                }
 
                 if (buffer.Length == 0) prevWasSpace = false;
 
                 if (c == TomlSyntax.SUBKEY_SEPARATOR)
                 {
-                    if (buffer.Length == 0)
+                    if (buffer.Length == 0 && !quoted)
                         return AddError($"Found an extra subkey separator in {".".Join(parts)}...");
 
                     parts.Add(buffer.ToString());
@@ -1091,7 +1067,7 @@ namespace Tommy
                 col++;
             }
 
-            if (buffer.Length == 0)
+            if (buffer.Length == 0 && !quoted)
                 return AddError($"Found an extra subkey separator in {".".Join(parts)}...");
 
             parts.Add(buffer.ToString());
@@ -1160,54 +1136,57 @@ namespace Tommy
             };
             if (node != null) return node;
 
-            value = value.Replace("T", " ");
+            // Normalize by removing space separator
+            value = value.Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator);
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalDateTimeFormats,
                                              DateTimeStyles.AssumeLocal,
+                                             DateTime.ParseExact,
                                              out var dateTimeResult,
                                              out var precision))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
                     SecondsPrecision = precision
                 };
-
-            if (StringUtils.TryParseDateTime(value,
-                                             TomlSyntax.RFC3339Formats,
-                                             DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
-                                             out dateTimeResult,
-                                             out precision))
-                return new TomlDateTime
-                {
-                    Value = dateTimeResult,
-                    SecondsPrecision = precision
-                };
-
 
             if (DateTime.TryParseExact(value,
                                        TomlSyntax.LocalDateFormat,
                                        CultureInfo.InvariantCulture,
                                        DateTimeStyles.AssumeLocal,
                                        out dateTimeResult))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
-                    OnlyDate = true
+                    Style = TomlDateTimeLocal.DateTimeStyle.Date
                 };
 
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalTimeFormats,
                                              DateTimeStyles.AssumeLocal,
+                                             DateTime.ParseExact,
                                              out dateTimeResult,
                                              out precision))
-                return new TomlDateTime
+                return new TomlDateTimeLocal
                 {
                     Value = dateTimeResult,
-                    OnlyTime = true,
+                    Style = TomlDateTimeLocal.DateTimeStyle.Time,
+                    SecondsPrecision = precision
+                };
+            
+            if (StringUtils.TryParseDateTime(value,
+                                             TomlSyntax.RFC3339Formats,
+                                             DateTimeStyles.None,
+                                             DateTimeOffset.ParseExact,
+                                             out var dateTimeOffsetResult,
+                                             out precision))
+                return new TomlDateTimeOffset
+                {
+                    Value = dateTimeOffsetResult,
                     SecondsPrecision = precision
                 };
 
-            AddError($"Value \"{value}\" is not a valid TOML 0.5.0 value!");
+            AddError($"Value \"{value}\" is not a valid TOML value!");
             return null;
         }
 
@@ -1240,7 +1219,7 @@ namespace Tommy
                 if (c == TomlSyntax.COMMENT_SYMBOL)
                 {
                     reader.ReadLine();
-                    AdvanceLine(0);
+                    AdvanceLine(1);
                     continue;
                 }
 
@@ -1272,12 +1251,6 @@ namespace Tommy
                     return null;
                 }
 
-                if (result.ChildrenCount != 0 && result[0].GetType() != currentValue.GetType())
-                {
-                    AddError($"Arrays cannot have mixed types! Inferred type: {result[0].GetType().FullName}. Element type: {currentValue.GetType().FullName}");
-                    return null;
-                }
-
                 continue;
                 consume_character:
                 ConsumeChar();
@@ -1300,6 +1273,7 @@ namespace Tommy
             ConsumeChar();
             var result = new TomlTable {IsInline = true};
             TomlNode currentValue = null;
+            var separator = false;
             var keyParts = new List<string>();
             int cur;
             while ((cur = reader.Peek()) >= 0)
@@ -1339,9 +1313,11 @@ namespace Tommy
                         return null;
                     keyParts.Clear();
                     currentValue = null;
+                    separator = true;
                     goto consume_character;
                 }
 
+                separator = false;
                 currentValue = ReadKeyValuePair(keyParts);
                 continue;
 
@@ -1349,6 +1325,12 @@ namespace Tommy
                 ConsumeChar();
             }
 
+            if (separator)
+            {
+                AddError("Trailing commas are not allowed in inline tables.");
+                return null;
+            }
+            
             if (currentValue != null && !InsertNode(currentValue, result, keyParts))
                 return null;
 
@@ -1415,7 +1397,7 @@ namespace Tommy
                                                  StringBuilder sb,
                                                  ref bool escaped)
         {
-            if (TomlSyntax.ShouldBeEscaped(c))
+            if (TomlSyntax.MustBeEscaped(c))
                 return AddError($"The character U+{(int) c:X8} must be escaped in a string!");
 
             if (escaped)
@@ -1455,23 +1437,42 @@ namespace Tommy
                 var shouldReturn =
                     ProcessQuotedValueCharacter(quote, isNonLiteral, initialData, sb, ref escaped);
                 if (currentState == ParseState.None) return null;
-                if (shouldReturn) return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
+                if (shouldReturn)
+                    if (isNonLiteral)
+                    {
+                        if (sb.ToString().TryUnescape(out var res, out var ex)) return res;
+                        AddError(ex.Message);
+                        return null;
+                    }
+                    else
+                        return sb.ToString();
             }
 
             int cur;
+            var readDone = false;
             while ((cur = reader.Read()) >= 0)
             {
                 // Consume the character
                 col++;
                 var c = (char) cur;
-                if (ProcessQuotedValueCharacter(quote, isNonLiteral, c, sb, ref escaped))
+                readDone = ProcessQuotedValueCharacter(quote, isNonLiteral, c, sb, ref escaped);
+                if (readDone)
                 {
                     if (currentState == ParseState.None) return null;
                     break;
                 }
             }
 
-            return isNonLiteral ? sb.ToString().Unescape() : sb.ToString();
+            if (!readDone)
+            {
+                AddError("Unclosed string.");
+                return null;
+            }
+
+            if (!isNonLiteral) return sb.ToString();
+            if (sb.ToString().TryUnescape(out var unescaped, out var unescapedEx)) return unescaped;
+            AddError(unescapedEx.Message);
+            return null;
         }
 
         /**
@@ -1489,14 +1490,18 @@ namespace Tommy
             var sb = new StringBuilder();
             var escaped = false;
             var skipWhitespace = false;
+            var skipWhitespaceLineSkipped = false;
             var quotesEncountered = 0;
             var first = true;
             int cur;
             while ((cur = ConsumeChar()) >= 0)
             {
                 var c = (char) cur;
-                if (TomlSyntax.ShouldBeEscaped(c))
-                    throw new Exception($"The character U+{(int) c:X8} must be escaped!");
+                if (TomlSyntax.MustBeEscaped(c, true))
+                {
+                    AddError($"The character U+{(int) c:X8} must be escaped!");
+                    return null;
+                }
                 // Trim the first newline
                 if (first && TomlSyntax.IsNewLine(c))
                 {
@@ -1523,10 +1528,20 @@ namespace Tommy
                     if (TomlSyntax.IsEmptySpace(c))
                     {
                         if (TomlSyntax.IsLineBreak(c))
+                        {
+                            skipWhitespaceLineSkipped = true;
                             AdvanceLine();
+                        }
                         continue;
                     }
 
+                    if (!skipWhitespaceLineSkipped)
+                    {
+                        AddError("Non-whitespace character after trim marker.");
+                        return null;
+                    }
+
+                    skipWhitespaceLineSkipped = false;
                     skipWhitespace = false;
                 }
 
@@ -1534,17 +1549,18 @@ namespace Tommy
                 if (isBasic && c == TomlSyntax.ESCAPE_SYMBOL)
                 {
                     var next = reader.Peek();
+                    var nc = (char) next;
                     if (next >= 0)
                     {
                         // ...and the next char is empty space, we must skip all whitespaces
-                        if (TomlSyntax.IsEmptySpace((char) next))
+                        if (TomlSyntax.IsEmptySpace(nc))
                         {
                             skipWhitespace = true;
                             continue;
                         }
 
-                        // ...and we have \", skip the character
-                        if ((char) next == quote) escaped = true;
+                        // ...and we have \" or \, skip the character
+                        if (nc == quote || nc == TomlSyntax.ESCAPE_SYMBOL) escaped = true;
                     }
                 }
 
@@ -1560,9 +1576,26 @@ namespace Tommy
                 sb.Append(c);
             }
 
-            // Remove last two quotes (third one wasn't included by default
+            // TOML actually allows to have five ending quotes like
+            // """"" => "" belong to the string + """ is the actual ending
+            quotesEncountered = 0;
+            while ((cur = reader.Peek()) >= 0)
+            {
+                var c = (char) cur;
+                if (c == quote && ++quotesEncountered < 3)
+                {
+                    sb.Append(c);
+                    ConsumeChar();
+                }
+                else break;
+            }
+
+            // Remove last two quotes (third one wasn't included by default)
             sb.Length -= 2;
-            return isBasic ? sb.ToString().Unescape() : sb.ToString();
+            if (!isBasic) return sb.ToString();
+            if (sb.ToString().TryUnescape(out var res, out var ex)) return res;
+            AddError(ex.Message);
+            return null;
         }
 
         #endregion
@@ -1588,6 +1621,8 @@ namespace Tommy
                     }
 
                     latestNode = currentNode;
+                    if (latestNode is TomlTable { IsInline: true })
+                        return AddError($"Cannot assign {".".Join(path)} because it will edit an immutable table.");
                 }
 
             if (latestNode.HasKey(path[path.Count - 1]))
@@ -1685,6 +1720,18 @@ namespace Tommy
         }
 
         #endregion
+        
+        #region Misc parsing
+
+        private string ParseComment()
+        {
+            ConsumeChar();
+            var commentLine = reader.ReadLine()?.Trim() ?? "";
+            if (commentLine.Any(ch => TomlSyntax.MustBeEscaped(ch)))
+                AddError("Comment must not contain control characters other than tab.", false);
+            return commentLine;
+        }
+        #endregion
     }
 
     #endregion
@@ -1754,13 +1801,13 @@ namespace Tommy
         public const string POS_INF_VALUE = "+inf";
         public const string NEG_INF_VALUE = "-inf";
 
-        public static bool IsBoolean(string s) => s == TRUE_VALUE || s == FALSE_VALUE;
+        public static bool IsBoolean(string s) => s is TRUE_VALUE or FALSE_VALUE;
 
-        public static bool IsPosInf(string s) => s == INF_VALUE || s == POS_INF_VALUE;
+        public static bool IsPosInf(string s) => s is INF_VALUE or POS_INF_VALUE;
 
         public static bool IsNegInf(string s) => s == NEG_INF_VALUE;
 
-        public static bool IsNaN(string s) => s == NAN_VALUE || s == POS_NAN_VALUE || s == NEG_NAN_VALUE;
+        public static bool IsNaN(string s) => s is NAN_VALUE or POS_NAN_VALUE or NEG_NAN_VALUE;
 
         public static bool IsInteger(string s) => IntegerPattern.IsMatch(s);
 
@@ -1779,26 +1826,25 @@ namespace Tommy
          * A pattern to verify the integer value according to the TOML specification.
          */
         public static readonly Regex IntegerPattern =
-            new Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
+            new(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)*)$", RegexOptions.Compiled);
 
         /**
          * A pattern to verify a special 0x, 0o and 0b forms of an integer according to the TOML specification.
          */
         public static readonly Regex BasedIntegerPattern =
-            new Regex(@"^(\+|-)?0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new(@"^0(?<base>x|b|o)(?!_)(_?[0-9A-F])*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /**
          * A pattern to verify the float value according to the TOML specification.
          */
         public static readonly Regex FloatPattern =
-            new
-                Regex(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
-                      RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new(@"^(\+|-)?(?!_)(0|(?!0)(_?\d)+)(((e(\+|-)?(?!_)(_?\d)+)?)|(\.(?!_)(_?\d)+(e(\+|-)?(?!_)(_?\d)+)?))$",
+                RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /**
          * A helper dictionary to map TOML base codes into the radii.
          */
-        public static readonly Dictionary<string, int> IntegerBases = new Dictionary<string, int>
+        public static readonly Dictionary<string, int> IntegerBases = new()
         {
             ["x"] = 16,
             ["o"] = 8,
@@ -1808,22 +1854,27 @@ namespace Tommy
         /**
          * A helper dictionary to map non-decimal bases to their TOML identifiers
          */
-        public static readonly Dictionary<int, string> BaseIdentifiers = new Dictionary<int, string>
+        public static readonly Dictionary<int, string> BaseIdentifiers = new()
         {
             [2] = "b",
             [8] = "o",
             [16] = "x"
         };
 
+        public const string RFC3339EmptySeparator = " ";
+        public const string ISO861Separator = "T";
+        public const string ISO861ZeroZone = "+00:00";
+        public const string RFC3339ZeroZone = "Z";
+
         /**
          * Valid date formats with timezone as per RFC3339.
          */
         public static readonly string[] RFC3339Formats =
         {
-            "yyyy'-'MM-dd HH':'mm':'ssK", "yyyy'-'MM-dd HH':'mm':'ss'.'fK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffK", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffffK",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffffK"
+            "yyyy'-'MM-ddTHH':'mm':'ssK", "yyyy'-'MM-ddTHH':'mm':'ss'.'fK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffK", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffffK",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffffK"
         };
 
         /**
@@ -1831,10 +1882,10 @@ namespace Tommy
          */
         public static readonly string[] RFC3339LocalDateTimeFormats =
         {
-            "yyyy'-'MM-dd HH':'mm':'ss", "yyyy'-'MM-dd HH':'mm':'ss'.'f", "yyyy'-'MM-dd HH':'mm':'ss'.'ff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fff", "yyyy'-'MM-dd HH':'mm':'ss'.'ffff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffff", "yyyy'-'MM-dd HH':'mm':'ss'.'ffffff",
-            "yyyy'-'MM-dd HH':'mm':'ss'.'fffffff"
+            "yyyy'-'MM-ddTHH':'mm':'ss", "yyyy'-'MM-ddTHH':'mm':'ss'.'f", "yyyy'-'MM-ddTHH':'mm':'ss'.'ff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fff", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffff", "yyyy'-'MM-ddTHH':'mm':'ss'.'ffffff",
+            "yyyy'-'MM-ddTHH':'mm':'ss'.'fffffff"
         };
 
         /**
@@ -1874,23 +1925,29 @@ namespace Tommy
 
         public static readonly char[] NewLineCharacters = {NEWLINE_CHARACTER, NEWLINE_CARRIAGE_RETURN_CHARACTER};
 
-        public static bool IsQuoted(char c) => c == BASIC_STRING_SYMBOL || c == LITERAL_STRING_SYMBOL;
+        public static bool IsQuoted(char c) => c is BASIC_STRING_SYMBOL or LITERAL_STRING_SYMBOL;
 
-        public static bool IsWhiteSpace(char c) => c == ' ' || c == '\t';
+        public static bool IsWhiteSpace(char c) => c is ' ' or '\t';
 
-        public static bool IsNewLine(char c) => c == NEWLINE_CHARACTER || c == NEWLINE_CARRIAGE_RETURN_CHARACTER;
+        public static bool IsNewLine(char c) => c is NEWLINE_CHARACTER or NEWLINE_CARRIAGE_RETURN_CHARACTER;
 
         public static bool IsLineBreak(char c) => c == NEWLINE_CHARACTER;
 
         public static bool IsEmptySpace(char c) => IsWhiteSpace(c) || IsNewLine(c);
 
         public static bool IsBareKey(char c) =>
-            'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_' || c == '-';
+            c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-';
 
-        public static bool ShouldBeEscaped(char c) => (c <= '\u001f' || c == '\u007f') && !IsNewLine(c);
+        public static bool MustBeEscaped(char c, bool allowNewLines = false)
+        {
+            var result = c is (>= '\u0000' and <= '\u0008') or '\u000b' or '\u000c' or (>= '\u000e' and <= '\u001f') or '\u007f';
+            if (!allowNewLines)
+                result |= c is >= '\u000a' and <= '\u000e';
+            return result;
+        }
 
         public static bool IsValueSeparator(char c) =>
-            c == ITEM_SEPARATOR || c == ARRAY_END_SYMBOL || c == INLINE_TABLE_END_SYMBOL;
+            c is ITEM_SEPARATOR or ARRAY_END_SYMBOL or INLINE_TABLE_END_SYMBOL;
 
         #endregion
     }
@@ -1899,7 +1956,7 @@ namespace Tommy
     {
         public static string AsKey(this string key)
         {
-            var quote = key.Any(c => !TomlSyntax.IsBareKey(c));
+            var quote = key == string.Empty || key.Any(c => !TomlSyntax.IsBareKey(c));
             return !quote ? key : $"{TomlSyntax.BASIC_STRING_SYMBOL}{key.Escape()}{TomlSyntax.BASIC_STRING_SYMBOL}";
         }
 
@@ -1918,19 +1975,27 @@ namespace Tommy
             return sb.ToString();
         }
 
-        public static bool TryParseDateTime(string s,
-                                            string[] formats,
-                                            DateTimeStyles styles,
-                                            out DateTime dateTime,
-                                            out int parsedFormat)
+        public static bool TryParseDateTime<T>(string s,
+                                               string[] formats,
+                                               DateTimeStyles styles,
+                                               Func<string, string, CultureInfo, DateTimeStyles, T> parser,
+                                               out T dateTime,
+                                               out int parsedFormat)
         {
             parsedFormat = 0;
-            dateTime = new DateTime();
-
+            dateTime = default;
             for (var i = 0; i < formats.Length; i++)
             {
                 var format = formats[i];
-                if (!DateTime.TryParseExact(s, format, CultureInfo.InvariantCulture, styles, out dateTime)) continue;
+                try
+                {
+                    dateTime = parser(s, format, CultureInfo.InvariantCulture, styles);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
                 parsedFormat = i;
                 return true;
             }
@@ -1972,7 +2037,7 @@ namespace Tommy
                     '\r' when escapeNewlines => @"\r",
                     '\\'                     => @"\\",
                     '\"'                     => @"\""",
-                    var _ when TomlSyntax.ShouldBeEscaped(c) || TOML.ForceASCII && c > sbyte.MaxValue =>
+                    var _ when TomlSyntax.MustBeEscaped(c, !escapeNewlines) || TOML.ForceASCII && c > sbyte.MaxValue =>
                         CodePoint(txt, ref i, c),
                     var _ => c
                 });
@@ -1981,6 +2046,22 @@ namespace Tommy
             return stringBuilder.ToString();
         }
 
+        public static bool TryUnescape(this string txt, out string unescaped, out Exception exception)
+        {
+            try
+            {
+                exception = null;
+                unescaped = txt.Unescape();
+                return true;
+            }
+            catch (Exception e)
+            {
+                exception = e;
+                unescaped = null;
+                return false;
+            }
+        }
+        
         public static string Unescape(this string txt)
         {
             if (string.IsNullOrEmpty(txt)) return txt;

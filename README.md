@@ -16,12 +16,12 @@ Alternatively, you can obtain the prebuilt package from [NuGet](https://www.nuge
 
 ## Features
 
-* Full implementation of TOML 0.5.0 spec.
+* Full implementation of TOML 1.0.0 spec.
 * Parser implemented with `TextReader` for simplicity and vast input support (i.e. string inputs with `StringReader`, streams via `StreamReader`, etc).
 * Parses TOML into a node-based structure that is similar to [SimpleJSON](https://github.com/Bunny83/SimpleJSON).
 * Basic support for parsing and saving comments.
 * Supports .NET 3.5+, Mono, .NET Core!
-* Uses C# 8 syntax for smaller file size.
+* Uses C# 9 syntax for smaller file size.
 * Small footprint (~39 KB compiled) compared to other similar C# libraries.
 
 ## How to use
@@ -248,6 +248,7 @@ bar.baz = "Hello, world!"
 ### Some notes about the writer
 
 * **The writer does not currently preserve the layout of the original document!** This is to save size and keep things simple for now.
+* Check out [Style info](./style.md) for information on what style Tommy uses to output TOML
 * The writer only uses basic strings for complex keys (i.e. no literal strings).
 
 ## Optional extensions
@@ -259,9 +260,7 @@ To use the extensions, simply include the file in your project. The extension me
 
 ## Tests
 
-Tommy's parser passes all syntax tests in the [toml-tests](https://github.com/BurntSushi/toml-test) test suite (with additional 0.5.0-specific tests from [toml-test#51](https://github.com/BurntSushi/toml-test/pull/51)).
-
-The parser passes some additional basic unit tests.
+Tommy's parser is tested against [toml-lang/compliance](https://github.com/toml-lang/compliance) test suite with additions from [pyrmont/toml-specs](https://github.com/pyrmont/toml-specs).
 
 ## What's with the name?
 
