@@ -1,40 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
     <PropertyGroup>
         <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
-        <AssemblyTitle>Tommy</AssemblyTitle>
-        <Product>Tommy</Product>
-        <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
-        <LangVersion>9</LangVersion>
-        <PackageId>Tommy</PackageId>
         <Version>3.0.0</Version>
-        <Authors>Denis Zhidkikh</Authors>
         <PackageTags>TOML,parser,writer,simple</PackageTags>
         <Description>
             A simple TOML parser and writer inspired by SimpleJSON.
             Provides minimal and simple API for parsing and writing TOML files.
             Compliant with TOML 1.0.0 format spec.
         </Description>
-        <PackageIcon>tommy_logo_icon.png</PackageIcon>
-        <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
-        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <PackageProjectUrl>https://github.com/dezhidki/Tommy</PackageProjectUrl>
     </PropertyGroup>
+
     <ItemGroup>
-        <None Include="..\LICENSE" Pack="true" PackagePath="" />
-        <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
+        <PackageReference Include="jnm2.ReferenceAssemblies.net35" Version="1.0.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
-    <ItemGroup>
-      <PackageReference Include="jnm2.ReferenceAssemblies.net35" Version="1.0.1">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-    </ItemGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <DebugType>portable</DebugType>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <DebugType>none</DebugType>
-    </PropertyGroup>
+
 </Project>

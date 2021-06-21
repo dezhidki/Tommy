@@ -1,0 +1,21 @@
+<Project>
+
+    <PropertyGroup>
+        <LangVersion>9</LangVersion>
+
+        <Copyright>Copyright © 2021 Denis Zhidkikh</Copyright>
+        <Authors>Denis Zhidkikh</Authors>
+
+        <PackageIcon>tommy_logo_icon.png</PackageIcon>
+        <PackageIconUrl>https://raw.githubusercontent.com/dezhidki/Tommy/master/logos/tommy_logo_icon.png</PackageIconUrl>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageProjectUrl>https://github.com/dezhidki/Tommy</PackageProjectUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\LICENSE" Pack="true" PackagePath="" />
+        <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+
+</Project>
