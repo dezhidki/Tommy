@@ -8,13 +8,14 @@ namespace Tommy.Extensions.Configuration
 {
     public class TomlConfigurationFileParser
     {
-        private TomlConfigurationFileParser()
-        {
-        }
+        private readonly Stack<string> _context = new();
 
-        private readonly IDictionary<string, string> _data = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Stack<string> _context = new Stack<string>();
+        private readonly IDictionary<string, string> _data =
+            new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         private string _currentPath;
+
+        private TomlConfigurationFileParser() { }
 
         public static IDictionary<string, string> Parse(Stream input)
             => new TomlConfigurationFileParser().ParseStream(input);
@@ -65,10 +66,7 @@ namespace Tommy.Extensions.Configuration
                 case TomlInteger:
                 case TomlString:
                     var key = _currentPath;
-                    if (_data.ContainsKey(key))
-                    {
-                        throw new FormatException($"A duplicate key '{key}' was found.");
-                    }
+                    if (_data.ContainsKey(key)) throw new FormatException($"A duplicate key '{key}' was found.");
 
                     _data[key] = value.ToString();
                     break;
