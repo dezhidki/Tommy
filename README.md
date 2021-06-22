@@ -24,6 +24,17 @@ Alternatively, you can obtain the prebuilt package from [NuGet](https://www.nuge
 * Uses C# 9 syntax for smaller file size.
 * Small footprint (~39 KB compiled) compared to other similar C# libraries.
 
+### Extensions
+
+Tommy includes only a reader and a writer. There exist a few additional extensions that you can use
+
+Officially maintained
+* [Tommy.Extensions](https://www.nuget.org/packages/Tommy.Extensions) -- General helper extensions for Tommy
+* [Tommy.Extensions.Configuration](https://www.nuget.org/packages/Tommy.Extensions.Configuration) -- `Microsoft.Extensions.Configuration` integration for Tommy
+
+3rd party
+* [Tommy.Serializer](https://github.com/instance-id/Tommy.Serializer) -- (De)serialization of objects for Tommy
+
 ## How to use
 
 ### Parsing TOML file
