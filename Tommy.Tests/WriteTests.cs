@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using Tommy.Tests.Util;
 
 namespace Tommy.Tests
 {
@@ -23,7 +24,7 @@ namespace Tommy.Tests
         [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(TableTests)}, Category = "Table tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
-            var expect = File.ReadAllText(Path.Combine("cases", "write", $"{test.FileName}.toml"));
+            var expect = File.ReadAllText(Path.Combine("cases", "write", $"{test.FileName}.toml")).NormalizeNewLines();
             using var sw = new StringWriter();
             test.Table.WriteTo(sw);
             using var sr = new StringReader(sw.ToString());

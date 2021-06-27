@@ -28,7 +28,7 @@ namespace Tommy.Tests
             TomlNode tomlNode = null;
             try
             {
-                tomlNode = TOML.Parse(new StringReader(test.Toml));
+                tomlNode = TOML.Parse(new StringReader(test.Toml.Replace("\r\n", "\n")));
             }
             catch (TomlParseException pe)
             {
@@ -43,6 +43,7 @@ namespace Tommy.Tests
             Assert.AreEqual(expectedJson, json);
         }
 
+        [Test]
         [TestCaseSource(nameof(TestParseFailure), new object[] {"array"}, Category = "Array invalid parse tests")]
         [TestCaseSource(nameof(TestParseFailure), new object[] {"comment"}, Category = "Comment invalid parse tests")]
         [TestCaseSource(nameof(TestParseFailure), new object[] {"integer"}, Category = "Integer invalid parse tests")]
