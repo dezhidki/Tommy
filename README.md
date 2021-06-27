@@ -61,7 +61,7 @@ using Tommy;
 
 
 // Parse into a node
-using(StreamReader reader = new StreamReader(File.OpenRead("configuration.toml")))
+using(StreamReader reader = File.OpenText("configuration.toml"))
 {
     // Parse the table
     TomlTable table = TOML.Parse(reader);
