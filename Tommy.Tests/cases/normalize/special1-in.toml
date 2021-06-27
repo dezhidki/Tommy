@@ -1,0 +1,14 @@
+﻿# Help & Documentation: blablabalba
+# IMPORTANT: blablabalba
+
+[General]
+AuthKey = ''
+Debug = false
+Description = 'BeamMP Default Description'
+Map = '/levels/gridmap/info.json'
+MaxCars = 2
+MaxPlayers = 10
+Name = 'BeamMP Server'
+Port = 30814
+Private = false
+ResourceFolder = 'Resources'
