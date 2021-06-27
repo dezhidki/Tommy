@@ -183,6 +183,8 @@ namespace Tommy
             var quotes = new string(PreferLiteral ? TomlSyntax.LITERAL_STRING_SYMBOL : TomlSyntax.BASIC_STRING_SYMBOL,
                                     IsMultiline ? 3 : 1);
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
+            if (IsMultiline)
+                result = result.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
             return $"{quotes}{result}{quotes}";
         }
     }
@@ -641,7 +643,7 @@ namespace Tommy
             currentState = ParseState.None;
             var keyParts = new List<string>();
             var arrayTable = false;
-            var latestComment = new StringBuilder();
+            StringBuilder latestComment = null;
             var firstComment = true;
 
             int currentChar;
@@ -657,10 +659,10 @@ namespace Tommy
                     if (TomlSyntax.IsNewLine(c))
                     {
                         // Check if there are any comments and so far no items being declared
-                        if (latestComment.Length != 0 && firstComment)
+                        if (latestComment != null && firstComment)
                         {
                             rootNode.Comment = latestComment.ToString().TrimEnd();
-                            latestComment.Length = 0;
+                            latestComment = null;
                             firstComment = false;
                         }
 
@@ -673,6 +675,7 @@ namespace Tommy
                     // Start of a comment; ignore until newline
                     if (c == TomlSyntax.COMMENT_SYMBOL)
                     {
+                        latestComment ??= new StringBuilder();
                         latestComment.AppendLine(ParseComment());
                         AdvanceLine(1);
                         continue;
@@ -704,7 +707,7 @@ namespace Tommy
 
                     if (keyValuePair == null)
                     {
-                        latestComment.Length = 0;
+                        latestComment = null;
                         keyParts.Clear();
 
                         if (currentState != ParseState.None)
@@ -712,9 +715,9 @@ namespace Tommy
                         continue;
                     }
 
-                    keyValuePair.Comment = latestComment.ToString().TrimEnd();
+                    keyValuePair.Comment = latestComment?.ToString()?.TrimEnd();
                     var inserted = InsertNode(keyValuePair, currentNode, keyParts);
-                    latestComment.Length = 0;
+                    latestComment = null;
                     keyParts.Clear();
                     if (inserted)
                         currentState = ParseState.SkipToNextLine;
@@ -743,7 +746,7 @@ namespace Tommy
                         {
                             AddError("Table name is emtpy.");
                             arrayTable = false;
-                            latestComment.Length = 0;
+                            latestComment = null;
                             keyParts.Clear();
                         }
 
@@ -762,7 +765,7 @@ namespace Tommy
                                 AddError($"Array table {".".Join(keyParts)} has only one closing bracket.");
                                 keyParts.Clear();
                                 arrayTable = false;
-                                latestComment.Length = 0;
+                                latestComment = null;
                                 continue;
                             }
                         }
@@ -771,12 +774,12 @@ namespace Tommy
                         if (currentNode != null)
                         {
                             currentNode.IsInline = false;
-                            currentNode.Comment = latestComment.ToString().TrimEnd();
+                            currentNode.Comment = latestComment?.ToString()?.TrimEnd();
                         }
 
                         keyParts.Clear();
                         arrayTable = false;
-                        latestComment.Length = 0;
+                        latestComment = null;
 
                         if (currentNode == null)
                         {
@@ -796,7 +799,7 @@ namespace Tommy
                         AddError($"Unexpected character \"{c}\"");
                         keyParts.Clear();
                         arrayTable = false;
-                        latestComment.Length = 0;
+                        latestComment = null;
                     }
                 }
 
