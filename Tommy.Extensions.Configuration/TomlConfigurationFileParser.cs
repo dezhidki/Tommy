@@ -6,14 +6,10 @@ using Microsoft.Extensions.Configuration;
 
 namespace Tommy.Extensions.Configuration
 {
-    public class TomlConfigurationFileParser
+    internal sealed class TomlConfigurationFileParser
     {
-        private readonly Stack<string> _context = new();
-
-        private readonly IDictionary<string, string> _data =
-            new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        private string _currentPath;
+        private readonly IDictionary<string, string> _data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Stack<string> _paths = new();
 
         private TomlConfigurationFileParser() { }
 
@@ -22,11 +18,9 @@ namespace Tommy.Extensions.Configuration
 
         private IDictionary<string, string> ParseStream(Stream input)
         {
-            _data.Clear();
-
             var table = TOML.Parse(new StreamReader(input));
             VisitElement(table);
-
+            
             return _data;
         }
 
@@ -52,10 +46,9 @@ namespace Tommy.Extensions.Configuration
                     var index = 0;
                     foreach (var arrayElement in array.RawArray)
                     {
-                        EnterContext(index.ToString());
+                        EnterContext((index++).ToString());
                         VisitValue(arrayElement);
                         ExitContext();
-                        index++;
                     }
 
                     break;
@@ -65,7 +58,7 @@ namespace Tommy.Extensions.Configuration
                 case TomlFloat:
                 case TomlInteger:
                 case TomlString:
-                    var key = _currentPath;
+                    var key = _paths.Peek();
                     if (_data.ContainsKey(key)) throw new FormatException($"A duplicate key '{key}' was found.");
 
                     _data[key] = value.ToString();
@@ -76,16 +69,11 @@ namespace Tommy.Extensions.Configuration
             }
         }
 
-        private void EnterContext(string context)
-        {
-            _context.Push(context);
-            _currentPath = ConfigurationPath.Combine(_context.Reverse());
-        }
+        private void EnterContext(string context) =>
+            _paths.Push(_paths.Count > 0 ?
+                            _paths.Peek() + ConfigurationPath.KeyDelimiter + context :
+                            context);
 
-        private void ExitContext()
-        {
-            _context.Pop();
-            _currentPath = ConfigurationPath.Combine(_context.Reverse());
-        }
+        private void ExitContext() => _paths.Pop();
     }
 }
