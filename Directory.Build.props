@@ -22,7 +22,7 @@
         <ParentDirectoryBuildPropsPath>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))</ParentDirectoryBuildPropsPath>
     </PropertyGroup>
 
-    <ImportGroup>
+    <ImportGroup Condition="'$(ParentDirectoryBuildPropsPath)' != ''">
         <Import Project="$(ParentDirectoryBuildPropsPath)" />
     </ImportGroup>
 </Project>
