@@ -656,6 +656,22 @@ namespace Tommy.Tests
                     }
                 }
             };
+            
+            private static TomlTable TableInlineOrder => new()
+            {
+                ["a"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["a"] = "foo",
+                    ["b"] = new TomlTable
+                    {
+                        ["a"] = 1,
+                        ["b"] = 2,
+                        ["c"] = 3,
+                    },
+                    ["c"] = "bar"
+                }
+            };
         }
     }
 }
