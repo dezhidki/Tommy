@@ -310,6 +310,7 @@ namespace Tommy
 
         public override bool HasValue { get; } = true;
         public override bool IsArray { get; } = true;
+        public bool IsMultiline { get; set; }
         public bool IsTableArray { get; set; }
         public List<TomlNode> RawArray => values ??= new List<TomlNode>();
 
@@ -343,16 +344,21 @@ namespace Tommy
 
         public override void Delete(int index) => RawArray.RemoveAt(index);
 
-        public override string ToString()
+        public override string ToString() => ToString(false);
+
+        public string ToString(bool multiline)
         {
             var sb = new StringBuilder();
             sb.Append(TomlSyntax.ARRAY_START_SYMBOL);
-
             if (ChildrenCount != 0)
-                sb.Append(' ')
-                  .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(RawArray.Select(n => n.ToInlineToml())))
-                  .Append(' ');
-
+            {
+                var arrayStart = multiline ? $"{Environment.NewLine}  " : " ";
+                var arraySeparator = multiline ? $"{TomlSyntax.ITEM_SEPARATOR}{Environment.NewLine}  " : $"{TomlSyntax.ITEM_SEPARATOR} ";
+                var arrayEnd = multiline ? Environment.NewLine : " ";
+                sb.Append(arrayStart)
+                  .Append(arraySeparator.Join(RawArray.Select(n => n.ToInlineToml())))
+                  .Append(arrayEnd);
+            }
             sb.Append(TomlSyntax.ARRAY_END_SYMBOL);
             return sb.ToString();
         }
@@ -362,7 +368,7 @@ namespace Tommy
             // If it's a normal array, write it as usual
             if (!IsTableArray)
             {
-                tw.WriteLine(ToInlineToml());
+                tw.WriteLine(ToString(IsMultiline));
                 return;
             }
 
