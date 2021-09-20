@@ -170,6 +170,7 @@ namespace Tommy
         public override bool HasValue { get; } = true;
         public override bool IsString { get; } = true;
         public bool IsMultiline { get; set; }
+        public bool MultilineSkipFirstLine { get; set; }
         public bool PreferLiteral { get; set; }
 
         public string Value { get; set; }
@@ -185,6 +186,8 @@ namespace Tommy
             var result = PreferLiteral ? Value : Value.Escape(!IsMultiline);
             if (IsMultiline)
                 result = result.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
+            if (IsMultiline && (MultilineSkipFirstLine || !MultilineSkipFirstLine && result.StartsWith(Environment.NewLine)))
+                result = $"{Environment.NewLine}{result}";
             return $"{quotes}{result}{quotes}";
         }
     }

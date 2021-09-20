@@ -12,16 +12,18 @@ namespace Tommy.Tests
     public class WriteTests
     {
         [Test]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(ArrayTests)}, Category = "Array tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(BooleanTests)}, Category = "Boolean tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(CommentTests)}, Category = "Comment tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(DateTimeTests)}, Category = "DateTime tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(FloatTests)}, Category = "Float tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(GenericTests)}, Category = "Generic tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(IntegerTests)}, Category = "Integer tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(KeyValueTests)}, Category = "Key-value tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(StringTests)}, Category = "String tests")]
-        [TestCaseSource(nameof(WriteSuccessTests), new object[] {nameof(TableTests)}, Category = "Table tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(ArrayTests) }, Category = "Array tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(BooleanTests) }, Category = "Boolean tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(CommentTests) }, Category = "Comment tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(DateTimeTests) }, Category = "DateTime tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(FloatTests) }, Category = "Float tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(GenericTests) }, Category = "Generic tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(IntegerTests) }, Category = "Integer tests")]
+        [TestCaseSource(nameof(WriteSuccessTests),
+                           new object[] { nameof(KeyValueTests) },
+                           Category = "Key-value tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(StringTests) }, Category = "String tests")]
+        [TestCaseSource(nameof(WriteSuccessTests), new object[] { nameof(TableTests) }, Category = "Table tests")]
         public void TestSuccessWrite(WriteSuccessTest test)
         {
             var expect = File.ReadAllText(Path.Combine("cases", "write", $"{test.FileName}.toml")).NormalizeNewLines();
@@ -58,20 +60,20 @@ namespace Tommy.Tests
         {
             private static TomlTable Array1 => new()
             {
-                ["integers"] = new TomlArray {1, 2, 3}
+                ["integers"] = new TomlArray { 1, 2, 3 }
             };
 
             private static TomlTable Array2 => new()
             {
-                ["colors"] = new TomlArray {"red", "yellow", "green"}
+                ["colors"] = new TomlArray { "red", "yellow", "green" }
             };
 
             private static TomlTable Array3 => new()
             {
                 ["nested_array_of_int"] = new TomlArray
                 {
-                    new TomlArray {1, 2},
-                    new TomlArray {3, 4, 5}
+                    new TomlArray { 1, 2 },
+                    new TomlArray { 3, 4, 5 }
                 }
             };
 
@@ -110,14 +112,14 @@ namespace Tommy.Tests
             {
                 ["nested_mixed_array"] = new TomlArray
                 {
-                    new TomlArray {1, 2},
-                    new TomlArray {"a", "b", "c"}
+                    new TomlArray { 1, 2 },
+                    new TomlArray { "a", "b", "c" }
                 }
             };
 
             private static TomlTable Array6 => new()
             {
-                ["numbers"] = new TomlArray {0.1, 0.2, 0.5, 1, 2, 5}
+                ["numbers"] = new TomlArray { 0.1, 0.2, 0.5, 1, 2, 5 }
             };
 
             private static TomlTable Array7 => new()
@@ -199,9 +201,9 @@ namespace Tommy.Tests
             {
                 ["points"] = new TomlArray
                 {
-                    new TomlTable {["x"] = 1, ["y"] = 2, ["z"] = 3},
-                    new TomlTable {["x"] = 7, ["y"] = 8, ["z"] = 9},
-                    new TomlTable {["x"] = 2, ["y"] = 4, ["z"] = 8}
+                    new TomlTable { ["x"] = 1, ["y"] = 2, ["z"] = 3 },
+                    new TomlTable { ["x"] = 7, ["y"] = 8, ["z"] = 9 },
+                    new TomlTable { ["x"] = 2, ["y"] = 4, ["z"] = 8 }
                 }
             };
         }
@@ -356,7 +358,7 @@ namespace Tommy.Tests
                 ["database"] =
                 {
                     ["server"] = "192.168.1.1",
-                    ["ports"] = {8001, 8001, 8002},
+                    ["ports"] = { 8001, 8001, 8002 },
                     ["connection_max"] = 5000,
                     ["enabled"] = true
                 },
@@ -376,8 +378,8 @@ namespace Tommy.Tests
                 },
                 ["clients"] =
                 {
-                    ["data"] = {[0] = {"gamma", "delta"}, [1] = {1, 2}},
-                    ["hosts"] = {"alpha", "omega"}
+                    ["data"] = { [0] = { "gamma", "delta" }, [1] = { 1, 2 } },
+                    ["hosts"] = { "alpha", "omega" }
                 },
             };
         }
@@ -576,6 +578,21 @@ namespace Tommy.Tests
                     Value = @"'That,' she said, 'is still pointless.'"
                 }
             };
+
+            private static TomlTable StringMultiLineNewlineSkip => new()
+            {
+                ["str1"] = new TomlString
+                {
+                    IsMultiline = true,
+                    MultilineSkipFirstLine = true,
+                    Value = "Test"
+                },
+                ["str2"] = new TomlString
+                {
+                    IsMultiline = true,
+                    Value = "\nTest"
+                },
+            };
         }
 
         private static class TableTests
@@ -588,7 +605,7 @@ namespace Tommy.Tests
                     ["orange"] = new TomlInteger { CollapseLevel = 1, Value = 2 }
                 },
             };
-            
+
             private static TomlTable DottedObject2 => new()
             {
                 ["apple"] =
@@ -604,7 +621,7 @@ namespace Tommy.Tests
                     ["color"] = new TomlString { CollapseLevel = 1, Value = "orange" },
                 },
             };
-            
+
             private static TomlTable TableBasic => new()
             {
                 ["table-1"] =
@@ -623,7 +640,7 @@ namespace Tommy.Tests
                     {
                         ["type"] =
                         {
-                            ["name"] = new TomlString { CollapseLevel = 1, Value = "pug"}
+                            ["name"] = new TomlString { CollapseLevel = 1, Value = "pug" }
                         }
                     }
                 },
@@ -656,7 +673,7 @@ namespace Tommy.Tests
                     }
                 }
             };
-            
+
             private static TomlTable TableInlineOrder => new()
             {
                 ["a"] = new TomlTable
@@ -672,7 +689,7 @@ namespace Tommy.Tests
                     ["c"] = "bar"
                 }
             };
-            
+
             private static TomlTable TableInlineCollapse => new()
             {
                 ["a"] = new TomlTable
