@@ -672,6 +672,34 @@ namespace Tommy.Tests
                     ["c"] = "bar"
                 }
             };
+            
+            private static TomlTable TableInlineCollapse => new()
+            {
+                ["a"] = new TomlTable
+                {
+                    IsInline = true,
+                    ["a"] = "foo",
+                    ["b"] = new TomlTable
+                    {
+                        ["a"] = new TomlInteger
+                        {
+                            CollapseLevel = 1,
+                            Value = 1
+                        },
+                        ["b"] = new TomlInteger
+                        {
+                            CollapseLevel = 1,
+                            Value = 2
+                        },
+                        ["c"] = new TomlInteger
+                        {
+                            CollapseLevel = 1,
+                            Value = 3
+                        },
+                    },
+                    ["c"] = "bar"
+                }
+            };
         }
     }
 }
