@@ -584,7 +584,7 @@ namespace Tommy.Tests
                 ["str1"] = new TomlString
                 {
                     IsMultiline = true,
-                    MultilineSkipFirstLine = true,
+                    MultilineTrimFirstLine = true,
                     Value = "Test"
                 },
                 ["str2"] = new TomlString
