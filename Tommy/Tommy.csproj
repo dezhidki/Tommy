@@ -8,7 +8,6 @@
             Provides minimal and simple API for parsing and writing TOML files.
             Compliant with TOML 1.0.0 format spec.
         </Description>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Tommy_TargetFrameworksToBuild)' == '' ">

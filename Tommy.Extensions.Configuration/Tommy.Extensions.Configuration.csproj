@@ -5,7 +5,6 @@
         <Authors>$(Authors), js6pak</Authors>
         <PackageTags>TOML,extension</PackageTags>
         <Description>Extensions for Tommy to use with Microsoft.Extensions.Configuration.</Description>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(TommyExtensionsConfiguration_TargetFrameworksToBuild)' == '' ">
