@@ -1,12 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Version>6.0.0</Version>
         <Authors>$(Authors), js6pak</Authors>
         <PackageTags>TOML,extension</PackageTags>
         <Description>Extensions for Tommy to use with Microsoft.Extensions.Configuration.</Description>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(TommyExtensionsConfiguration_TargetFrameworksToBuild)' == '' ">
+        <TommyExtensionsConfiguration_TargetFrameworksToBuild>$(Tommy_TargetFrameworksToBuild)</TommyExtensionsConfiguration_TargetFrameworksToBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensionsConfiguration_TargetFrameworksToBuild)' == '' ">
+        <TommyExtensionsConfiguration_TargetFrameworksToBuild>$(TargetFrameworksToBuild)</TommyExtensionsConfiguration_TargetFrameworksToBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensionsConfiguration_TargetFrameworksToBuild)' == '' ">
+        <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensionsConfiguration_TargetFrameworksToBuild)' != '' ">
+        <TargetFrameworks>$(TommyExtensionsConfiguration_TargetFrameworksToBuild)</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>

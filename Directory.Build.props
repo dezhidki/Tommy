@@ -18,4 +18,11 @@
         <None Include="..\logos\tommy_logo_icon.png" Pack="true" Visible="false" PackagePath="" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <ParentDirectoryBuildPropsPath>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))</ParentDirectoryBuildPropsPath>
+    </PropertyGroup>
+
+    <ImportGroup>
+        <Import Project="$(ParentDirectoryBuildPropsPath)" />
+    </ImportGroup>
 </Project>

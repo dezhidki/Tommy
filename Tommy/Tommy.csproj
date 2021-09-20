@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
         <Version>3.0.1</Version>
         <PackageTags>TOML,parser,writer,simple</PackageTags>
         <Description>
@@ -10,6 +9,16 @@
             Compliant with TOML 1.0.0 format spec.
         </Description>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Tommy_TargetFrameworksToBuild)' == '' ">
+        <Tommy_TargetFrameworksToBuild>$(TargetFrameworksToBuild)</Tommy_TargetFrameworksToBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Tommy_TargetFrameworksToBuild)' == '' ">
+        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Tommy_TargetFrameworksToBuild)' != '' ">
+        <TargetFrameworks>$(Tommy_TargetFrameworksToBuild)</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
