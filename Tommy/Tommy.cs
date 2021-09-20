@@ -53,6 +53,7 @@ namespace Tommy
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
         public virtual int CollapseLevel { get; set; }
+        public int MinimumInlineWidth { get; set; } = 0;
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
@@ -353,14 +354,33 @@ namespace Tommy
         {
             var sb = new StringBuilder();
             sb.Append(TomlSyntax.ARRAY_START_SYMBOL);
-            if (ChildrenCount != 0)
+            if (RawArray.Count != 0)
             {
-                var arrayStart = multiline ? $"{Environment.NewLine}  " : " ";
-                var arraySeparator = multiline ? $"{TomlSyntax.ITEM_SEPARATOR}{Environment.NewLine}  " : $"{TomlSyntax.ITEM_SEPARATOR} ";
-                var arrayEnd = multiline ? Environment.NewLine : " ";
-                sb.Append(arrayStart)
-                  .Append(arraySeparator.Join(RawArray.Select(n => n.ToInlineToml())))
-                  .Append(arrayEnd);
+                if (multiline)
+                    sb.AppendLine();
+                for (int i = 0; i < RawArray.Count; i++)
+                {
+                    var n = RawArray[i];
+                    var inline = n.ToInlineToml();
+                    sb.Append(multiline ? "  " : ' ');
+                    sb.Append(inline);
+                    if (i + 1 < RawArray.Count)
+                    {
+                        sb.Append(TomlSyntax.ITEM_SEPARATOR);
+                    }
+                    if (multiline)
+                        sb.AppendLine();
+                    else
+                    {
+                        var minimumInlineWidth = n.MinimumInlineWidth;
+                        if (minimumInlineWidth > inline.Length)
+                        {
+                            sb.Append(' ', minimumInlineWidth - inline.Length);
+                        }
+                    }
+                }
+                if (!multiline)
+                    sb.Append(' ');
             }
             sb.Append(TomlSyntax.ARRAY_END_SYMBOL);
             return sb.ToString();
@@ -456,11 +476,26 @@ namespace Tommy
             if (ChildrenCount != 0)
             {
                 var collapsed = CollectCollapsedItems(normalizeOrder: false);
-
                 if (collapsed.Count != 0)
-                    sb.Append(' ')
-                      .Append($"{TomlSyntax.ITEM_SEPARATOR} ".Join(collapsed.Select(n =>
-                                                                       $"{n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} {n.Value.ToInlineToml()}")));
+                {
+                    int i = 0;
+                    foreach (var n in collapsed)
+                    {
+                        sb.Append($" {n.Key} {TomlSyntax.KEY_VALUE_SEPARATOR} ");
+                        var inline = n.Value.ToInlineToml();
+                        sb.Append(inline);
+                        if (i + 1 < collapsed.Count)
+                        {
+                            sb.Append(TomlSyntax.ITEM_SEPARATOR);
+                        }
+                        var minimumInlineWidth = n.Value.MinimumInlineWidth;
+                        if (minimumInlineWidth > inline.Length)
+                        {
+                            sb.Append(' ', minimumInlineWidth - inline.Length);
+                        }
+                        i++;
+                    }
+                }
                 sb.Append(' ');
             }
 
