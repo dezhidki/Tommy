@@ -178,6 +178,7 @@ namespace Tommy.Extensions
         ///     If true, will also merge values present in the other node that are not present in this
         ///     node.
         /// </param>
+        /// <remarks>For tables and arrays, values are not copied from <b>with</b> but rather added by reference.</remarks>
         /// <returns>The node that the other node was merged into.</returns>
         public static TomlNode MergeWith(this TomlNode self, TomlNode with, bool mergeNewValues = false)
         {
@@ -189,7 +190,7 @@ namespace Tommy.Extensions
                         if (tbl.TryGetNode(keyValuePair.Key, out var node))
                             node.MergeWith(keyValuePair.Value, mergeNewValues);
                         else if (mergeNewValues)
-                            tbl[keyValuePair.Key] = node;
+                            tbl[keyValuePair.Key] = keyValuePair.Value;
                 }
                     break;
                 case TomlArray arr when with is TomlArray withArr:
