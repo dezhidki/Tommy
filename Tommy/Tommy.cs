@@ -452,7 +452,7 @@ namespace Tommy
 
             if (ChildrenCount != 0)
             {
-                var collapsed = CollectCollapsedItems();
+                var collapsed = CollectCollapsedItems(normalizeOrder: false);
 
                 if (collapsed.Count != 0)
                     sb.Append(' ')
@@ -465,10 +465,10 @@ namespace Tommy
             return sb.ToString();
         }
 
-        private LinkedList<KeyValuePair<string, TomlNode>> CollectCollapsedItems(string prefix = "", int level = 0)
+        private LinkedList<KeyValuePair<string, TomlNode>> CollectCollapsedItems(string prefix = "", int level = 0, bool normalizeOrder = true)
         {
-            var nodes = new LinkedList<KeyValuePair<string, TomlNode>>(); //new Dictionary<string, TomlNode>();
-            var postNodes = new LinkedList<KeyValuePair<string, TomlNode>>(); //new Dictionary<string, TomlNode>();
+            var nodes = new LinkedList<KeyValuePair<string, TomlNode>>();
+            var postNodes = normalizeOrder ? new LinkedList<KeyValuePair<string, TomlNode>>() : nodes;
 
             foreach (var keyValuePair in RawTable)
             {
@@ -477,7 +477,7 @@ namespace Tommy
                 
                 if (node is TomlTable tbl)
                 {
-                    var subnodes = tbl.CollectCollapsedItems($"{prefix}{key}.", level + 1);
+                    var subnodes = tbl.CollectCollapsedItems($"{prefix}{key}.", level + 1, normalizeOrder);
                     // Write main table first before writing collapsed items
                     if (subnodes.Count == 0 && node.CollapseLevel == level)
                     {
@@ -490,8 +490,9 @@ namespace Tommy
                     nodes.AddLast(new KeyValuePair<string, TomlNode>($"{prefix}{key}", node));
             }
             
-            foreach (var kv in postNodes)
-                nodes.AddLast(kv);
+            if (normalizeOrder)
+                foreach (var kv in postNodes)
+                    nodes.AddLast(kv);
 
             return nodes;
         }
