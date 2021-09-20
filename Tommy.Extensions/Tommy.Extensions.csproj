@@ -1,11 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
         <Version>2.0.0</Version>
         <PackageTags>TOML,parser,writer,simple,extension</PackageTags>
         <Description>Extensions for Tommy to allow higher level access to TOML parser and writer.</Description>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(TommyExtensions_TargetFrameworksToBuild)' == '' ">
+        <TommyExtensions_TargetFrameworksToBuild>$(Tommy_TargetFrameworksToBuild)</TommyExtensions_TargetFrameworksToBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensions_TargetFrameworksToBuild)' == '' ">
+        <TommyExtensions_TargetFrameworksToBuild>$(TargetFrameworksToBuild)</TommyExtensions_TargetFrameworksToBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensions_TargetFrameworksToBuild)' == '' ">
+        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TommyExtensions_TargetFrameworksToBuild)' != '' ">
+        <TargetFrameworks>$(TommyExtensions_TargetFrameworksToBuild)</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
