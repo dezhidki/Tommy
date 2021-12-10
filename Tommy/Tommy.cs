@@ -1217,6 +1217,7 @@ namespace Tommy
             ConsumeChar();
             var result = new TomlArray();
             TomlNode currentValue = null;
+            var expectValue = true;
 
             int cur;
             while ((cur = reader.Peek()) >= 0)
@@ -1247,15 +1248,21 @@ namespace Tommy
                 {
                     if (currentValue == null)
                     {
-                        AddError("Encountered multiple value separators in an array!");
+                        AddError("Encountered multiple value separators");
                         return null;
                     }
 
                     result.Add(currentValue);
                     currentValue = null;
+                    expectValue = true;
                     goto consume_character;
                 }
 
+                if (!expectValue)
+                {
+                    AddError("Missing separator between values");
+                    return null;
+                }
                 currentValue = ReadValue(true);
                 if (currentValue == null)
                 {
@@ -1263,6 +1270,7 @@ namespace Tommy
                         AddError("Failed to determine and parse a value!");
                     return null;
                 }
+                expectValue = false;
 
                 continue;
                 consume_character:
