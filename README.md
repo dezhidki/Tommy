@@ -22,7 +22,7 @@ Alternatively, you can obtain the prebuilt package from [NuGet](https://www.nuge
 * Basic support for parsing and saving comments.
 * Supports .NET 3.5+, Mono, .NET Core!
 * Uses C# 9 syntax for smaller file size.
-* Small footprint (~39 KB compiled) compared to other similar C# libraries.
+* Small footprint (~41 KB compiled) compared to other similar C# libraries.
 * Performs well compared to other similar C# libraries ([view benchmarks](https://github.com/bugproof/TomlLibrariesBenchmark))
 
 ### Extensions
