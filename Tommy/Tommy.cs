@@ -1151,10 +1151,10 @@ namespace Tommy
 
             // Normalize by removing space separator
             value = value.Replace(TomlSyntax.RFC3339EmptySeparator, TomlSyntax.ISO861Separator);
-            if (StringUtils.TryParseDateTime(value,
+            if (StringUtils.TryParseDateTime<DateTime>(value,
                                              TomlSyntax.RFC3339LocalDateTimeFormats,
                                              DateTimeStyles.AssumeLocal,
-                                             DateTime.ParseExact,
+                                             DateTime.TryParseExact,
                                              out var dateTimeResult,
                                              out var precision))
                 return new TomlDateTimeLocal
@@ -1177,7 +1177,7 @@ namespace Tommy
             if (StringUtils.TryParseDateTime(value,
                                              TomlSyntax.RFC3339LocalTimeFormats,
                                              DateTimeStyles.AssumeLocal,
-                                             DateTime.ParseExact,
+                                             DateTime.TryParseExact,
                                              out dateTimeResult,
                                              out precision))
                 return new TomlDateTimeLocal
@@ -1187,12 +1187,12 @@ namespace Tommy
                     SecondsPrecision = precision
                 };
             
-            if (StringUtils.TryParseDateTime(value,
-                                             TomlSyntax.RFC3339Formats,
-                                             DateTimeStyles.None,
-                                             DateTimeOffset.ParseExact,
-                                             out var dateTimeOffsetResult,
-                                             out precision))
+            if (StringUtils.TryParseDateTime<DateTimeOffset>(value,
+                                                             TomlSyntax.RFC3339Formats,
+                                                             DateTimeStyles.None,
+                                                             DateTimeOffset.TryParseExact,
+                                                             out var dateTimeOffsetResult,
+                                                             out precision))
                 return new TomlDateTimeOffset
                 {
                     Value = dateTimeOffsetResult,
@@ -1996,10 +1996,12 @@ namespace Tommy
             return sb.ToString();
         }
 
+        public delegate bool TryDateParseDelegate<T>(string s, string format, IFormatProvider ci, DateTimeStyles dts, out T dt);
+        
         public static bool TryParseDateTime<T>(string s,
                                                string[] formats,
                                                DateTimeStyles styles,
-                                               Func<string, string, CultureInfo, DateTimeStyles, T> parser,
+                                               TryDateParseDelegate<T> parser,
                                                out T dateTime,
                                                out int parsedFormat)
         {
@@ -2008,15 +2010,7 @@ namespace Tommy
             for (var i = 0; i < formats.Length; i++)
             {
                 var format = formats[i];
-                try
-                {
-                    dateTime = parser(s, format, CultureInfo.InvariantCulture, styles);
-                }
-                catch (Exception)
-                {
-                    continue;
-                }
-
+                if (!parser(s, format, CultureInfo.InvariantCulture, styles, out dateTime)) continue;
                 parsedFormat = i;
                 return true;
             }
