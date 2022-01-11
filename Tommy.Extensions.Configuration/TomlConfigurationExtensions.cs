@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 
@@ -94,5 +95,21 @@ namespace Tommy.Extensions.Configuration
         public static IConfigurationBuilder AddTomlFile(this IConfigurationBuilder builder,
                                                         Action<TomlConfigurationSource> configureSource)
             => builder.Add(configureSource);
+        
+        /// <summary>
+        /// Adds a TOML configuration source to <paramref name="builder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="IConfigurationBuilder"/> to add to.</param>
+        /// <param name="stream">The <see cref="Stream"/> to read the TOML configuration data from.</param>
+        /// <returns>The <see cref="IConfigurationBuilder"/>.</returns>
+        public static IConfigurationBuilder AddTomlStream(this IConfigurationBuilder builder, Stream stream)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            return builder.Add<TomlStreamConfigurationSource>(s => s.Stream = stream);
+        }
     }
 }
