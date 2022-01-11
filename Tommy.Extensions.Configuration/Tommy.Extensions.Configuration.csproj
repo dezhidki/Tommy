@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>6.1.0</Version>
+        <Version>6.2.0</Version>
         <Authors>$(Authors), js6pak</Authors>
         <PackageTags>TOML,extension</PackageTags>
         <Description>Extensions for Tommy to use with Microsoft.Extensions.Configuration.</Description>
