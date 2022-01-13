@@ -1,0 +1,27 @@
+﻿[date.1]
+RegEx = "foo"
+Priority = 1
+
+[date.2]
+RegEx = "foo"
+Priority = 2
+
+[date.3]
+RegEx = "foo"
+Priority = 3
+
+[date.4]
+RegEx = "foo"
+Priority = 4
+
+[date.5]
+RegEx = "foo"
+Priority = 5
+
+[date.6]
+RegEx = "foo"
+Priority = 6
+
+[date.7]
+RegEx = "foo"
+Priority = 1
