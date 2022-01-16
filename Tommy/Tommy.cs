@@ -421,6 +421,7 @@ namespace Tommy
     public class TomlTable : TomlNode
     {
         private Dictionary<string, TomlNode> children;
+        internal bool isImplicit;
         
         public override bool HasValue { get; } = false;
         public override bool IsTable { get; } = true;
@@ -1683,10 +1684,16 @@ namespace Tommy
                         latestNode = arr[arr.ChildrenCount - 1];
                         continue;
                     }
+                    
+                    if (node is TomlTable { IsInline: true })
+                    {
+                        AddError($"Cannot create table {".".Join(path)} because it will edit an immutable table.");
+                        return null;
+                    }
 
                     if (node.HasValue)
                     {
-                        if (!(node is TomlArray array) || !array.IsTableArray)
+                        if (node is not TomlArray { IsTableArray: true } array)
                         {
                             AddError($"The key {".".Join(path)} has a value assigned to it!");
                             return null;
@@ -1704,7 +1711,7 @@ namespace Tommy
                             return null;
                         }
 
-                        if (node is TomlTable tbl && !tbl.IsInline)
+                        if (node is TomlTable { isImplicit: false })
                         {
                             AddError($"The table {".".Join(path)} is defined multiple times!");
                             return null;
@@ -1726,10 +1733,7 @@ namespace Tommy
                         break;
                     }
 
-                    node = new TomlTable
-                    {
-                        IsInline = true
-                    };
+                    node = new TomlTable { isImplicit = true };
                     latestNode[subkey] = node;
                 }
 
@@ -1737,6 +1741,7 @@ namespace Tommy
             }
 
             var result = (TomlTable) latestNode;
+            result.isImplicit = false;
             return result;
         }
 
